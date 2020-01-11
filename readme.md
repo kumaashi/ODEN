@@ -3,9 +3,11 @@
 ## About
 
 ODEN is design ideas for the complexity of modern GPU API also neither a special library nor a namespace.
+
 ODEN is a concept dedicated to processing only abstract commands and is not mandatory. This is a so-called command pattern.
 Also it makes sense to focus on the impatient and those made with common compatibility commands for C/C++ and Win10.
 Modern GPUAPIs are difficult and cumbersome just to do the basics.
+
 However, there isn't much that you need. And since every extension API builds on its basics, ODEN made it because I wanted that abstract layer.
 
 ## BASIC Command sets.
