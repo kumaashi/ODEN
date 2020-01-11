@@ -9,6 +9,7 @@ Also it makes sense to focus on the impatient and those made with common compati
 Modern GPUAPIs are difficult and cumbersome just to do the basics.
 
 However, there isn't much that you need. And since every extension API builds on its basics, ODEN made it because I wanted that abstract layer.
+Also DirectX is used for the sample source.
 
 ## BASIC Command sets.
 
