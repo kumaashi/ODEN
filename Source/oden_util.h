@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  */
+#pragma once
 
 #include "ODEN.h"
 
