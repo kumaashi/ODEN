@@ -17,7 +17,7 @@ ODEN has tiny command sets(CMD). The command *example* is as follows:
 
 ```
 enum {
-	CMD_NOP,
+	CMD_NOP,c
 	CMD_SET_BARRIER,
 	CMD_SET_RENDER_TARGET,
 	CMD_SET_TEXTURE,
@@ -71,6 +71,10 @@ That is philosophy.
 
 Why use ODEN? In short, to sketch every time a new API comes out. Ideally, smart class design can be done from the beginning, but there are many patterns that are not. 
 Furthermore, if you want to try out the API right now, but create a class design and dependencies from scratch, I felt that it was best to be able to process things flat. This means that as complexity increases, ODEN will stop working ;-).
+
+## Todo
+
+Add variation sample code.
 
 ## Sample program LICENSE
 
