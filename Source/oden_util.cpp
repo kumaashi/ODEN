@@ -1,29 +1,30 @@
 /*
- * 
+ *
  * Copyright (c) 2020 gyabo <gyaboyan@gmail.com>
- * Permission is hereby granted, free of charge, to any person obtaining a 
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in 
+ *
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "oden_util.h"
 
-namespace odenutil {
+namespace odenutil
+{
 
 void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name)
 {
@@ -95,7 +96,7 @@ SetTexture(
 	c.set_texture.rect.h = h;
 	vcmd.push_back(c);
 }
-	
+
 void
 SetTextureUav(
 	std::vector<cmd> & vcmd, std::string name,
@@ -174,7 +175,7 @@ void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	cmd c;
 	c.type = CMD_CLEAR;
 	c.name = name;
-	for(int i = 0 ; i < 4; i++)
+	for (int i = 0 ; i < 4; i++)
 		c.clear.color[i] = col[i];
 	vcmd.push_back(c);
 }
@@ -224,10 +225,9 @@ void Dispatch(std::vector<cmd> & vcmd, std::string name,
 
 void DebugPrint(std::vector<cmd> & vcmd)
 {
-	for(auto & c : vcmd)
-	{
+	for (auto & c : vcmd) {
 		auto type = c.type;
-		switch(type) {
+		switch (type) {
 		case CMD_NOP:
 			printf("CMD_NOP\n");
 			break;

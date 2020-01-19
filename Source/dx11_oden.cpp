@@ -1,22 +1,22 @@
 /*
- * 
+ *
  * Copyright (c) 2020 gyabo <gyaboyan@gmail.com>
- * Permission is hereby granted, free of charge, to any person obtaining a 
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in 
+ *
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
  */
@@ -48,9 +48,9 @@
 #define info_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
 #define err_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
 
-static HRESULT 
+static HRESULT
 CompileShaderFromFile(std::string name,
-	LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
+	LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
 	HRESULT hr = S_OK;
 	ID3DBlob* perrblob = NULL;
@@ -60,12 +60,12 @@ CompileShaderFromFile(std::string name,
 		wfname.push_back(name[i]);
 	wfname.push_back(0);
 	hr = D3DCompileFromFile(&wfname[0], NULL,
-		D3D_COMPILE_STANDARD_FILE_INCLUDE,
-		szEntryPoint, szShaderModel, flags, 0, ppBlobOut, &perrblob);
-	if(FAILED(hr)) {
+			D3D_COMPILE_STANDARD_FILE_INCLUDE,
+			szEntryPoint, szShaderModel, flags, 0, ppBlobOut, &perrblob);
+	if (FAILED(hr)) {
 		err_printf("name=%s: %s\n", name.c_str(), perrblob ? perrblob->GetBufferPointer() : "UNKNOWN");
 	}
-	if(perrblob)
+	if (perrblob)
 		perrblob->Release();
 	return hr;
 }
@@ -75,7 +75,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	void *handle, uint32_t w, uint32_t h,
 	uint32_t num, uint32_t heapcount, uint32_t slotmax)
 {
-	HWND hwnd = (HWND)handle;
+	HWND hwnd = (HWND) handle;
 	static ID3D11Device *dev  = NULL;
 	static ID3D11DeviceContext *ctx = NULL;
 	static IDXGISwapChain *swapchain = NULL;
@@ -102,9 +102,10 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	static uint64_t device_index = 0;
 	static uint64_t frame_count = 0;
 
-	if(dev == nullptr) {
+	if (dev == nullptr) {
 		DXGI_SWAP_CHAIN_DESC d3dsddesc = {
-			{ w, h, { 60, 1 }, DXGI_FORMAT_R8G8B8A8_UNORM, 
+			{
+				w, h, { 60, 1 }, DXGI_FORMAT_R8G8B8A8_UNORM,
 				DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
 				DXGI_MODE_SCALING_UNSPECIFIED,
 			}, {1, 0},
@@ -120,9 +121,9 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		ID3D11Texture2D *backtex = nullptr;
 		ID3D11RenderTargetView *backrtv = nullptr;
 		swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-			(LPVOID *)&backtex);
+			(LPVOID *) &backtex);
 		dev->CreateRenderTargetView(backtex, NULL, &backrtv);
-		for(uint32_t i = 0; i < num; i++) {
+		for (uint32_t i = 0; i < num; i++) {
 			auto name = oden_get_backbuffer_name(i);
 			mtex[name] = backtex;
 			mrtv[name] = backrtv;
@@ -149,9 +150,9 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		dev->CreateRasterizerState(&rsstate_desc, &rsstate);
 	};
 
-	if(hwnd == nullptr) {
+	if (hwnd == nullptr) {
 		auto release = [](auto &a, const char * name = nullptr) {
-			if(a) {
+			if (a) {
 				printf("release : %p : name=%s\n",
 					a, name ? name : "noname");
 				a->Release();
@@ -159,7 +160,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			a = nullptr;
 		};
 		auto mrelease = [&](auto &m) {
-			for(auto & p : m)
+			for (auto & p : m)
 				release(p.second, p.first.c_str());
 		};
 
@@ -168,7 +169,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		mrelease(mrtv);
 		mrelease(mtex);
 		mrelease(mbuf);
-		for(auto & p : mpstate) {
+		for (auto & p : mpstate) {
 			release(p.second.vs, (p.first + ": VS").c_str());
 			release(p.second.gs, (p.first + ": GS").c_str());
 			release(p.second.ps, (p.first + ": PS").c_str());
@@ -194,7 +195,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	ctx->PSSetSamplers(1, 1, &sampler_state_linear);
 	ctx->RSSetState(rsstate);
 
-	for(auto & c : vcmd) {
+	for (auto & c : vcmd) {
 		auto type = c.type;
 		auto name = c.name;
 
@@ -202,44 +203,44 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		auto fmt_depth = DXGI_FORMAT_D32_FLOAT;
 
 		//CMD_SET_RENDER_TARGET
-		if(type == CMD_SET_RENDER_TARGET) {
+		if (type == CMD_SET_RENDER_TARGET) {
 			auto name_depth = oden_get_depth_render_target_name(name);
 			auto tex = mtex[name];
-			if(tex == nullptr) {
+			if (tex == nullptr) {
 				int maxmips = oden_get_mipmap_max(c.set_render_target.rect.w, c.set_render_target.rect.h);
 				D3D11_TEXTURE2D_DESC desc = {
 					c.set_render_target.rect.w, c.set_render_target.rect.h, maxmips, 1, fmt_color, {1, 0},
 					D3D11_USAGE_DEFAULT, D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS, 0,  0,
 				};
 				dev->CreateTexture2D(&desc, NULL, &tex);
-				if(tex) {
+				if (tex) {
 					mtex[name] = tex;
 				} else {
 					err_printf("CMD_SET_RENDER_TARGET name=%s, tex=%p, maxmips=%d\n", name.c_str(), tex, maxmips);
 					exit(1);
 				}
-				info_printf("INFO : CreateTexture2D(rtv) name=%s, tex=%p, maxmips=%d\n", name.c_str(), tex, maxmips);
+				info_printf("CreateTexture2D(rtv) name=%s, tex=%p, maxmips=%d\n", name.c_str(), tex, maxmips);
 			}
 			auto tex_depth = mtex[name_depth];
-			if(tex_depth == nullptr) {
+			if (tex_depth == nullptr) {
 				D3D11_TEXTURE2D_DESC desc = {
 					c.set_render_target.rect.w, c.set_render_target.rect.h, 1, 1, fmt_depth, {1, 0},
 					D3D11_USAGE_DEFAULT, D3D11_BIND_DEPTH_STENCIL, 0,  0,
 				};
 				dev->CreateTexture2D(&desc, NULL, &tex_depth);
-				if(tex) {
+				if (tex) {
 					mtex[name_depth] = tex;
 				} else {
 					err_printf("ERROR CMD_SET_RENDER_TARGET name_depth=%s, tex=%p\n", name_depth.c_str(), tex);
 					exit(1);
 				}
-				info_printf("INFO : CreateTexture2D(dsv) name=%s, tex=%p\n", name_depth.c_str(), tex);
+				info_printf("CreateTexture2D(dsv) name=%s, tex=%p\n", name_depth.c_str(), tex);
 			}
 			auto rtv = mrtv[name];
-			if(rtv == nullptr) {
+			if (rtv == nullptr) {
 				dev->CreateRenderTargetView(tex, nullptr, &rtv);
-				info_printf("INFO : CreateRenderTargetView name=%s, rtv=%p\n", name.c_str(), rtv);
-				if(rtv) {
+				info_printf("CreateRenderTargetView name=%s, rtv=%p\n", name.c_str(), rtv);
+				if (rtv) {
 					mrtv[name] = rtv;
 				} else {
 					err_printf("ERROR CMD_SET_RENDER_TARGET : CreateRenderTargetView name=%s, tex=%p\n", name.c_str(), tex);
@@ -248,10 +249,10 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			}
 
 			auto dsv = mdsv[name];
-			if(dsv == nullptr) {
+			if (dsv == nullptr) {
 				dev->CreateDepthStencilView(tex_depth, nullptr, &dsv);
-				info_printf("INFO : CreateDepthStencilView name(dsv)=%s, dsv=%p\n", name.c_str(), dsv);
-				if(dsv) {
+				info_printf("CreateDepthStencilView name(dsv)=%s, dsv=%p\n", name.c_str(), dsv);
+				if (dsv) {
 					mdsv[name] = dsv;
 				} else {
 					err_printf("ERROR CMD_SET_RENDER_TARGET : CreateDepthStencilView name=%s, tex=%p\n", name.c_str(), tex);
@@ -261,21 +262,21 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			auto vw = c.set_render_target.rect.w;
 			auto vh = c.set_render_target.rect.h;
 			D3D11_RECT rc = { 0, 0, vw, vh };
-			D3D11_VIEWPORT vp = { 0.0f, 0.0f, (FLOAT)vw, (FLOAT)vh, 0.0f, 1.0f, };
+			D3D11_VIEWPORT vp = { 0.0f, 0.0f, (FLOAT) vw, (FLOAT) vh, 0.0f, 1.0f, };
 			ctx->RSSetScissorRects(1, &rc);
 			ctx->RSSetViewports(1, &vp);
-			info_printf("INFO : vp=%f %f %f %f\n", 0.0f, 0.0f, (FLOAT)w, (FLOAT)h);
+			info_printf("vp=%f %f %f %f\n", 0.0f, 0.0f, (FLOAT) w, (FLOAT) h);
 			ctx->OMSetRenderTargets(1, &rtv, dsv);
 		}
 
 		//CMD_SET_TEXTURE
-		if(type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
+		if (type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
 			auto slot = c.set_texture.slot;
 			auto tex = mtex[name];
 			auto srv = msrv[name];
 			auto rtv = mrtv[name];
 			auto uav = muav[name];
-			if(tex == nullptr) {
+			if (tex == nullptr) {
 				fmt_color = DXGI_FORMAT_R8G8B8A8_UNORM;
 				D3D11_TEXTURE2D_DESC desc = {
 					c.set_texture.rect.w, c.set_texture.rect.h, 1, 1, fmt_color, {1, 0},
@@ -286,8 +287,8 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				initdata.SysMemPitch = c.set_texture.stride;
 				initdata.SysMemSlicePitch = c.set_texture.size;
 				dev->CreateTexture2D(&desc, &initdata, &tex);
-				info_printf("INFO : CreateTexture2D : name=%s, tex=%p\n", name.c_str(), tex);
-				if(tex)
+				info_printf("CreateTexture2D : name=%s, tex=%p\n", name.c_str(), tex);
+				if (tex)
 					mtex[name] = tex;
 				else {
 					err_printf("ERROR CMD_SET_TEXTURE name=%s, tex=%p\n", name.c_str(), tex);
@@ -298,30 +299,30 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			D3D11_TEXTURE2D_DESC texdesc = {};
 			tex->GetDesc(&texdesc);
 
-			if(type == CMD_SET_TEXTURE) {
-				if(srv == nullptr) {
+			if (type == CMD_SET_TEXTURE) {
+				if (srv == nullptr) {
 					D3D11_SHADER_RESOURCE_VIEW_DESC desc = { fmt_color, D3D11_SRV_DIMENSION_TEXTURE2D, {0, 0}, };
 					desc.Texture2D.MipLevels = 1;
-					if(rtv)
+					if (rtv)
 						desc.Texture2D.MipLevels = texdesc.MipLevels - 1;
 
-					
-					info_printf("INFO : CMD_SET_TEXTURE name=%s, srv=%p, rtv=%p, miplevels=%d\n",
+
+					info_printf("CMD_SET_TEXTURE name=%s, srv=%p, rtv=%p, miplevels=%d\n",
 						name.c_str(), srv, rtv, desc.Texture2D.MipLevels);
 					dev->CreateShaderResourceView(tex, &desc, &srv);
-					if(srv == nullptr) {
+					if (srv == nullptr) {
 						err_printf("ERROR CMD_SET_TEXTURE CreateShaderResourceView name=%s, tex=%p\n",
 							name.c_str(), tex);
 						exit(1);
 					}
 					msrv[name] = srv;
-					info_printf("INFO : CreateShaderResourceView : name=%s, srv=%p\n", name.c_str(), srv);
+					info_printf("CreateShaderResourceView : name=%s, srv=%p\n", name.c_str(), srv);
 				}
 
 				ID3D11UnorderedAccessView * uavnull[1] = { nullptr };
-				ctx->CSSetUnorderedAccessViews( 0, 1, uavnull, nullptr );
-				if(srv) {
-					info_printf("INFO : XSSetShaderResources : name=%s, srv=%p\n", name.c_str(), srv);
+				ctx->CSSetUnorderedAccessViews(0, 1, uavnull, nullptr);
+				if (srv) {
+					info_printf("XSSetShaderResources : name=%s, srv=%p\n", name.c_str(), srv);
 					ctx->VSSetShaderResources(slot, 1, &srv);
 					ctx->PSSetShaderResources(slot, 1, &srv);
 				} else {
@@ -330,20 +331,20 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				}
 			}
 
-			if(type == CMD_SET_TEXTURE_UAV) {
+			if (type == CMD_SET_TEXTURE_UAV) {
 				if (uav == nullptr && tex) {
 					auto temp = uav;
-					for(int i = 0 ; i < texdesc.MipLevels; i++) {
+					for (int i = 0 ; i < texdesc.MipLevels; i++) {
 						D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
 						desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
 						desc.Texture2D.MipSlice = i;
 						desc.Format = texdesc.Format;
 						dev->CreateUnorderedAccessView(tex, &desc, &temp);
-						info_printf("INFO : CreateUnorderedAccessView name=%s, uav=%p\n", name.c_str(), temp);
-						
-						if(temp) {
+						info_printf("CreateUnorderedAccessView name=%s, uav=%p\n", name.c_str(), temp);
+
+						if (temp) {
 							muav[oden_get_mipmap_name(name, i)] = temp;
-							if(i == 0)
+							if (i == 0)
 								muav[name] = temp;
 						} else {
 							err_printf("CMD_SET_TEXTURE_UAV : CreateUnorderedAccessView : name=%s, uav=%p\n", name.c_str(), uav);
@@ -359,16 +360,16 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_CONSTANT
-		if(type == CMD_SET_CONSTANT) {
+		if (type == CMD_SET_CONSTANT) {
 			auto slot = c.set_constant.slot;
 			auto cb = mbuf[name];
-			if(cb == nullptr) {
+			if (cb == nullptr) {
 				D3D11_BUFFER_DESC bd = {
 					c.set_constant.size, D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0
 				};
 				auto hr = dev->CreateBuffer(&bd, nullptr, &cb);
-				info_printf("INFO : CreateBuffer : name=%s, cb=%p\n", name.c_str(), cb);
-				if(cb) {
+				info_printf("CreateBuffer : name=%s, cb=%p\n", name.c_str(), cb);
+				if (cb) {
 					mbuf[name] = cb;
 				} else {
 					err_printf("CreateBuffer : name=%s, cb=%p\n", name.c_str(), cb);
@@ -382,25 +383,25 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_VERTEX
-		if(type == CMD_SET_VERTEX) {
+		if (type == CMD_SET_VERTEX) {
 			auto vb = mbuf[name];
-			if(vb == nullptr) {
+			if (vb == nullptr) {
 				D3D11_BUFFER_DESC bd = {
 					c.set_vertex.size, D3D11_USAGE_DYNAMIC, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0
 				};
 				bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 				auto hr = dev->CreateBuffer(&bd, nullptr, &vb);
-				info_printf("INFO : CreateBuffer : name=%s, vb=%p\n", name.c_str(), vb);
-				if(vb) {
+				info_printf("CreateBuffer : name=%s, vb=%p\n", name.c_str(), vb);
+				if (vb) {
 					mbuf[name] = vb;
 				} else {
-					info_printf("INFO : CreateBuffer : name=%s, vb=%p\n", name.c_str(), vb);
+					info_printf("CreateBuffer : name=%s, vb=%p\n", name.c_str(), vb);
 					exit(0);
 				}
 
 				D3D11_MAPPED_SUBRESOURCE msr = {};
 				ctx->Map(vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
-				if(msr.pData) {
+				if (msr.pData) {
 					memcpy(msr.pData, c.set_vertex.data, c.set_vertex.size);
 					ctx->Unmap(vb, 0);
 				} else {
@@ -411,23 +412,23 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			UINT stride = c.set_vertex.stride_size;
 			UINT offset = 0;
 			ctx->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
-			ctx->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
 		//CMD_SET_SHADER
-		if(type == CMD_SET_SHADER) {
+		if (type == CMD_SET_SHADER) {
 			auto is_update = c.set_shader.is_update;
 			auto pstate = mpstate[name];
-			if(is_update) {
-				if(pstate.dsstate) pstate.dsstate->Release();
-				if(pstate.layout) pstate.layout->Release();
-				if(pstate.vs) pstate.vs->Release();
-				if(pstate.gs) pstate.gs->Release();
-				if(pstate.ps) pstate.ps->Release();
+			if (is_update) {
+				if (pstate.dsstate) pstate.dsstate->Release();
+				if (pstate.layout) pstate.layout->Release();
+				if (pstate.vs) pstate.vs->Release();
+				if (pstate.gs) pstate.gs->Release();
+				if (pstate.ps) pstate.ps->Release();
 				mpstate.erase(name);
 				pstate = mpstate[name];
 			}
-			if(pstate.vs == nullptr && pstate.cs == nullptr) {
+			if (pstate.vs == nullptr && pstate.cs == nullptr) {
 				ID3DBlob *pBlobVS = NULL;
 				ID3DBlob *pBlobGS = NULL;
 				ID3DBlob *pBlobPS = NULL;
@@ -437,20 +438,20 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				CompileShaderFromFile(name, "PSMain", "ps_5_0", &pBlobPS);
 				CompileShaderFromFile(name, "CSMain", "cs_5_0", &pBlobCS);
 
-				if(pBlobVS)
+				if (pBlobVS)
 					dev->CreateVertexShader(
 						pBlobVS->GetBufferPointer(), pBlobVS->GetBufferSize(), NULL, &pstate.vs);
-				if(pBlobGS)
+				if (pBlobGS)
 					dev->CreateGeometryShader(
 						pBlobGS->GetBufferPointer(), pBlobGS->GetBufferSize(), NULL, &pstate.gs);
-				if(pBlobPS)
+				if (pBlobPS)
 					dev->CreatePixelShader(
 						pBlobPS->GetBufferPointer(), pBlobPS->GetBufferSize(), NULL, &pstate.ps);
-				if(pBlobCS)
+				if (pBlobCS)
 					dev->CreateComputeShader(
 						pBlobCS->GetBufferPointer(), pBlobCS->GetBufferSize(), NULL, &pstate.cs);
-				
-				if(pstate.vs) {
+
+				if (pstate.vs) {
 					D3D11_INPUT_ELEMENT_DESC layout[] = {
 						{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0,                            D3D11_INPUT_PER_VERTEX_DATA, 0 },
 						{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -477,33 +478,33 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					dsstate_desc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 					dev->CreateDepthStencilState(&dsstate_desc, &pstate.dsstate);
 				}
-				info_printf("pstate.layout	= %p\n", pstate.layout);
-				info_printf("pstate.dsstate	= %p\n", pstate.dsstate);
-				info_printf("pstate.vs	  = %p\n", pstate.vs);
-				info_printf("pstate.ps	  = %p\n", pstate.ps);
-				info_printf("pstate.cs	  = %p\n", pstate.cs);
+				info_printf("pstate.layout= %p\n", pstate.layout);
+				info_printf("pstate.dsstate= %p\n", pstate.dsstate);
+				info_printf("pstate.vs  = %p\n", pstate.vs);
+				info_printf("pstate.ps  = %p\n", pstate.ps);
+				info_printf("pstate.cs  = %p\n", pstate.cs);
 
-				if(pstate.layout && pstate.vs && pstate.ps || pstate.cs) {
+				if (pstate.layout && pstate.vs && pstate.ps || pstate.cs) {
 					mpstate[name] = pstate;
 				} else {
-					if(pstate.dsstate) pstate.dsstate->Release();
-					if(pstate.layout) pstate.layout->Release();
-					if(pstate.vs) pstate.vs->Release();
-					if(pstate.gs) pstate.gs->Release();
-					if(pstate.ps) pstate.ps->Release();
-					if(pstate.cs) pstate.ps->Release();
+					if (pstate.dsstate) pstate.dsstate->Release();
+					if (pstate.layout) pstate.layout->Release();
+					if (pstate.vs) pstate.vs->Release();
+					if (pstate.gs) pstate.gs->Release();
+					if (pstate.ps) pstate.ps->Release();
+					if (pstate.cs) pstate.ps->Release();
 					mpstate.erase(name);
 
 					printf("Error SET_SHADER name=%s\n", name.c_str());
 					Sleep(1000);
 				}
 
-				if(pBlobVS) pBlobVS->Release();
-				if(pBlobGS) pBlobGS->Release();
-				if(pBlobPS) pBlobPS->Release();
-				if(pBlobCS) pBlobCS->Release();
+				if (pBlobVS) pBlobVS->Release();
+				if (pBlobGS) pBlobGS->Release();
+				if (pBlobPS) pBlobPS->Release();
+				if (pBlobCS) pBlobCS->Release();
 			}
-			if(pstate.vs) {
+			if (pstate.vs) {
 				ctx->OMSetDepthStencilState(pstate.dsstate, 0);
 				ctx->IASetInputLayout(pstate.layout);
 				ctx->VSSetShader(pstate.vs, NULL, 0);
@@ -511,35 +512,35 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				ctx->PSSetShader(pstate.ps, NULL, 0);
 				ctx->CSSetShader(NULL, NULL, 0);
 			}
-			if(pstate.cs) {
-				info_printf("INFO : SET_SHADER CS : name=%s\n", name.c_str());
+			if (pstate.cs) {
+				info_printf("SET_SHADER CS : name=%s\n", name.c_str());
 				ctx->CSSetShader(pstate.cs, NULL, 0);
 			}
 		}
 
 		//CMD_CLEAR
-		if(type == CMD_CLEAR) {
+		if (type == CMD_CLEAR) {
 			auto rtv = mrtv[name];
-			if(rtv)
+			if (rtv)
 				ctx->ClearRenderTargetView(rtv, c.clear.color);
 			else
 				printf("Error CMD_CLEAR name=%s not found\n", name.c_str());
 		}
 
 		//CMD_CLEAR_DEPTH
-		if(type == CMD_CLEAR_DEPTH) {
+		if (type == CMD_CLEAR_DEPTH) {
 			auto dsv = mdsv[name];
-			if(dsv)
+			if (dsv)
 				ctx->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH, c.clear_depth.value, 0);
 			else
 				printf("Error CMD_CLEAR name=%s not found\n", name.c_str());
 		}
-		
+
 
 		//CMD_SET_INDEX
-		if(type == CMD_SET_INDEX) {
+		if (type == CMD_SET_INDEX) {
 			auto ib = mbuf[name];
-			if(c.set_index.data && ib == nullptr) {
+			if (c.set_index.data && ib == nullptr) {
 				D3D11_BUFFER_DESC bd = {
 					c.set_index.size, D3D11_USAGE_DYNAMIC, D3D11_BIND_INDEX_BUFFER, 0, 0, 0
 				};
@@ -550,30 +551,30 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 				D3D11_MAPPED_SUBRESOURCE msr = {};
 				ctx->Map(ib, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
-				if(msr.pData) {
+				if (msr.pData) {
 					memcpy(msr.pData, c.set_index.data, c.set_index.size);
 					ctx->Unmap(ib, 0);
 				} else {
 					err_printf("ERROR CMD_SET_INDEX name=%s Can't map\n", name.c_str());
 				}
 			}
-			ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0 );
+			ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
 		}
-		
+
 		//CMD_DRAW_INDEX
-		if(type == CMD_DRAW_INDEX) {
+		if (type == CMD_DRAW_INDEX) {
 			auto count = c.draw_index.count;
 			ctx->DrawIndexedInstanced(count, 1, 0, 0, 0);
 		}
 
 		//CMD_DRAW
-		if(type == CMD_DRAW) {
+		if (type == CMD_DRAW) {
 			auto count = c.draw.vertex_count;
 			ctx->DrawInstanced(count, 1, 0, 0);
 		}
 
 		//CMD_DISPATCH
-		if(type == CMD_DISPATCH) {
+		if (type == CMD_DISPATCH) {
 			auto x = c.dispatch.x;
 			auto y = c.dispatch.y;
 			auto z = c.dispatch.z;

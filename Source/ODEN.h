@@ -1,22 +1,22 @@
 /*
- * 
+ *
  * Copyright (c) 2020 gyabo <gyaboyan@gmail.com>
- * Permission is hereby granted, free of charge, to any person obtaining a 
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in 
+ *
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
  */
@@ -151,7 +151,7 @@ oden_get_mipmap_max(int w, int h)
 {
 	int len = (std::min)(w, h);
 	int maxmips = 0;
-	while(len) {
+	while (len) {
 		maxmips++;
 		len >>= 1;
 	}
@@ -167,33 +167,33 @@ oden_get_depth_render_target_name(std::string name)
 inline const char *
 oden_get_cmd_name(int c)
 {
-	if(c == CMD_NOP)
+	if (c == CMD_NOP)
 		return "CMD_NOP";
-        if(c == CMD_SET_BARRIER)
+	if (c == CMD_SET_BARRIER)
 		return "CMD_SET_BARRIER";
-        if(c == CMD_SET_RENDER_TARGET)
+	if (c == CMD_SET_RENDER_TARGET)
 		return "CMD_SET_RENDER_TARGET";
-        if(c == CMD_SET_TEXTURE)
+	if (c == CMD_SET_TEXTURE)
 		return "CMD_SET_TEXTURE";
-        if(c == CMD_SET_TEXTURE_UAV)
+	if (c == CMD_SET_TEXTURE_UAV)
 		return "CMD_SET_TEXTURE_UAV";
-        if(c == CMD_SET_VERTEX)
+	if (c == CMD_SET_VERTEX)
 		return "CMD_SET_VERTEX";
-        if(c == CMD_SET_INDEX)
+	if (c == CMD_SET_INDEX)
 		return "CMD_SET_INDEX";
-        if(c == CMD_SET_CONSTANT)
+	if (c == CMD_SET_CONSTANT)
 		return "CMD_SET_CONSTANT";
-        if(c == CMD_SET_SHADER)
+	if (c == CMD_SET_SHADER)
 		return "CMD_SET_SHADER";
-        if(c == CMD_CLEAR)
+	if (c == CMD_CLEAR)
 		return "CMD_CLEAR";
-        if(c == CMD_CLEAR_DEPTH)
+	if (c == CMD_CLEAR_DEPTH)
 		return "CMD_CLEAR_DEPTH";
-        if(c == CMD_DRAW_INDEX)
+	if (c == CMD_DRAW_INDEX)
 		return "CMD_DRAW_INDEX";
-        if(c == CMD_DRAW)
+	if (c == CMD_DRAW)
 		return "CMD_DRAW";
-        if(c == CMD_DISPATCH)
+	if (c == CMD_DISPATCH)
 		return "CMD_DISPATCH";
-        return "__CMD_UNKNOWN__";
+	return "__CMD_UNKNOWN__";
 }

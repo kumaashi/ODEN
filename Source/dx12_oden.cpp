@@ -1,22 +1,22 @@
 /*
- * 
+ *
  * Copyright (c) 2020 gyabo <gyaboyan@gmail.com>
- * Permission is hereby granted, free of charge, to any person obtaining a 
- * copy of this software and associated documentation files (the "Software"), 
- * to deal in the Software without restriction, including without limitation 
- * the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- * and/or sell copies of the Software, and to permit persons to whom the 
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in 
+ *
+ * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
  */
@@ -122,7 +122,7 @@ create_shader_from_file(std::string fstr, std::string entry, std::string profile
 	D3DCompileFromFile(&wfname[0], NULL, D3D_COMPILE_STANDARD_FILE_INCLUDE,
 		entry.c_str(), profile.c_str(), flags, 0, &blob, &blob_err);
 	if (blob_err) {
-		printf("%s:\n%s\n", __FUNCTION__, (char *)blob_err->GetBufferPointer());
+		printf("%s:\n%s\n", __FUNCTION__, (char *) blob_err->GetBufferPointer());
 		blob_err->Release();
 	}
 	if (!blob && !blob_err)
@@ -133,7 +133,7 @@ create_shader_from_file(std::string fstr, std::string entry, std::string profile
 	memcpy(shader_code.data(), blob->GetBufferPointer(), blob->GetBufferSize());
 	if (blob)
 		blob->Release();
-	return {shader_code.data(), shader_code.size()};
+	return {shader_code.data(), shader_code.size() };
 }
 
 void
@@ -141,7 +141,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	void *handle, uint32_t w, uint32_t h,
 	uint32_t num, uint32_t heapcount, uint32_t slotmax)
 {
-	HWND hwnd = (HWND)handle;
+	HWND hwnd = (HWND) handle;
 	enum {
 		RDT_SLOT_SRV = 0,
 		RDT_SLOT_CBV,
@@ -173,7 +173,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	static uint64_t deviceindex = 0;
 	static uint64_t frame_count = 0;
 
-	if(dev == nullptr) {
+	if (dev == nullptr) {
 		D3D12_COMMAND_QUEUE_DESC cqdesc = {};
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_rtv = { D3D12_DESCRIPTOR_HEAP_TYPE_RTV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_dsv = { D3D12_DESCRIPTOR_HEAP_TYPE_DSV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
@@ -207,7 +207,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		factory->Release();
 
 		devicebuffer.resize(num);
-		for(int i = 0; i < num; i++) {
+		for (int i = 0; i < num; i++) {
 			auto & x = devicebuffer[i];
 			dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&x.cmdalloc));
 			dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, x.cmdalloc, nullptr, IID_PPV_ARGS(&x.cmdlist));
@@ -215,8 +215,8 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			x.cmdlist->Close();
 			x.value = i;
 		}
-		
-		for(int i = 0 ; i < num; i++) {
+
+		for (int i = 0 ; i < num; i++) {
 			ID3D12Resource *res = nullptr;
 			swapchain->GetBuffer(i, IID_PPV_ARGS(&res));
 			mres[oden_get_backbuffer_name(i)] = res;
@@ -229,14 +229,14 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		root_param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 		root_param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		root_param.DescriptorTable.NumDescriptorRanges = 1;
-		
-		for(UINT i = 0 ; i < slotmax; i++) {
+
+		for (UINT i = 0 ; i < slotmax; i++) {
 			vdesc_range.push_back({D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, i, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND});
 			vdesc_range.push_back({D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, i, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND});
 			vdesc_range.push_back({D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, i, 0, D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND});
 		}
 
-		for(auto & x : vdesc_range) {
+		for (auto & x : vdesc_range) {
 			root_param.DescriptorTable.pDescriptorRanges = &x;
 			vroot_param.push_back(root_param);
 		}
@@ -248,7 +248,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			0.0f, 0.0f, D3D12_COMPARISON_FUNC_NEVER, D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK, 0.0f, D3D12_FLOAT32_MAX,
 			0, 0, D3D12_SHADER_VISIBILITY_ALL,
 		};
-		
+
 		sampler[0] = default_sampler;
 		sampler[0].ShaderRegister = 0;
 		sampler[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -267,28 +267,28 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 		auto hr = D3D12SerializeRootSignature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1_0, &signature, &perrblob);
 		if (hr && perrblob) {
-			err_printf("Failed D3D12SerializeRootSignature:\n%s\n", (char *)perrblob->GetBufferPointer());
+			err_printf("Failed D3D12SerializeRootSignature:\n%s\n", (char *) perrblob->GetBufferPointer());
 			exit(1);
 		}
-		
+
 		hr = dev->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&rootsig));
-		if(perrblob) perrblob->Release();
-		if(signature) signature->Release();
+		if (perrblob) perrblob->Release();
+		if (signature) signature->Release();
 	};
-	
+
 	{
 		auto ret = dev->GetDeviceRemovedReason();
-		if(ret) {
+		if (ret) {
 			err_printf("!!!!!!Device Lost frame_count=%lld, reason=%08X\n", frame_count, ret);
 			exit(1);
 		}
 	}
-	
+
 	std::map<std::string, D3D12_RESOURCE_TRANSITION_BARRIER> mbarrier;
 	deviceindex = swapchain->GetCurrentBackBufferIndex();
 
 	auto & ref = devicebuffer[deviceindex];
-	
+
 	queue->Signal(ref.fence, ref.value);
 	if (ref.fence->GetCompletedValue() < ref.value) {
 		auto hevent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -297,25 +297,25 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		CloseHandle(hevent);
 	}
 	ref.value++;
-	
-	for(auto & scratch : ref.vscratch)
+
+	for (auto & scratch : ref.vscratch)
 		scratch->Release();
 	ref.vscratch.clear();
 
-	if(hwnd == nullptr) {
+	if (hwnd == nullptr) {
 		auto release = [](auto & x) {
-			if(x) x->Release();
+			if (x) x->Release();
 			x = nullptr;
 		};
 		auto mrelease = [=](auto & m) {
-			for(auto & p : m) {
-				if(p.second)
+			for (auto & p : m) {
+				if (p.second)
 					printf("%s : release=%s\n", __FUNCTION__, p.first.c_str());
 				release(p.second);
 			}
 			m.clear();
 		};
-		for(auto & ref : devicebuffer) {
+		for (auto & ref : devicebuffer) {
 			release(ref.fence);
 			release(ref.cmdlist);
 			release(ref.cmdalloc);
@@ -338,7 +338,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	ref.cmdlist->SetComputeRootSignature(rootsig);
 	ref.cmdlist->SetDescriptorHeaps(1, &heap_shader);
 
-	for(auto & c : vcmd) {
+	for (auto & c : vcmd) {
 		auto type = c.type;
 		auto name = c.name;
 		auto res = mres[name];
@@ -348,18 +348,18 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		auto fmt_depth = DXGI_FORMAT_D32_FLOAT;
 
 		//CMD_SET_BARRIER
-		if(type == CMD_SET_BARRIER) {
+		if (type == CMD_SET_BARRIER) {
 			D3D12_RESOURCE_TRANSITION_BARRIER tb {};
 			tb.pResource = nullptr;
-			if(c.set_barrier.to_present) {
+			if (c.set_barrier.to_present) {
 				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 				tb.StateAfter = D3D12_RESOURCE_STATE_COMMON;
 			}
-			if(c.set_barrier.to_texture) {
+			if (c.set_barrier.to_texture) {
 				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 				tb.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 			}
-			if(c.set_barrier.to_rendertarget) {
+			if (c.set_barrier.to_rendertarget) {
 				tb.StateBefore = D3D12_RESOURCE_STATE_COMMON;
 				tb.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 			}
@@ -367,7 +367,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_RENDER_TARGET
-		if(type == CMD_SET_RENDER_TARGET) {
+		if (type == CMD_SET_RENDER_TARGET) {
 			auto x = c.set_render_target.rect.x;
 			auto y = c.set_render_target.rect.y;
 			auto w = c.set_render_target.rect.w;
@@ -379,17 +379,17 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 			{
 				auto res = mres[name_color];
-				if(res == nullptr) {
+				if (res == nullptr) {
 					res = create_resource(name_color, dev, w, h, fmt_color,
-						D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-					if(!res) {
+							D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+					if (!res) {
 						err_printf("create_resource(rtv) name=%s\n", name.c_str());
 						exit(1);
 					}
 					mres[name_color] = res;
 				}
 
-				if(mcpu_handle.count(name_color) == 0) {
+				if (mcpu_handle.count(name_color) == 0) {
 					D3D12_RENDER_TARGET_VIEW_DESC desc = {};
 					auto res_desc = res->GetDesc();
 					auto temp = cpu_handle_color;
@@ -401,30 +401,30 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					mcpu_handle[name_color] = handle_index_rtv++;
 				};
 
-				if(mbarrier.count(name_color)) {
+				if (mbarrier.count(name_color)) {
 					D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
 					barrier.Transition = mbarrier[name_color];
 					barrier.Transition.pResource = mres[name_color];
 					ref.cmdlist->ResourceBarrier(1, &barrier);
 				}
 				mbarrier.erase(name_color);
-				
+
 				auto cpu_index = mcpu_handle[name_color];
 				cpu_handle_color.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * cpu_index;
 			}
-			
+
 			{
 				auto res = mres[name_depth];
-				if(res == nullptr) {
+				if (res == nullptr) {
 					res = create_resource(name_depth, dev, w, h, fmt_depth, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-					if(!res) {
+					if (!res) {
 						err_printf("create_resource(dsv) name=%s\n", name.c_str());
 						exit(1);
 					}
 					mres[name_depth] = res;
 				}
 
-				if(mcpu_handle.count(name_depth) == 0) {
+				if (mcpu_handle.count(name_depth) == 0) {
 					auto temp = cpu_handle_depth;
 					D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
 					desc.Format = fmt_depth;
@@ -437,8 +437,8 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				auto cpu_index = mcpu_handle[name_depth];
 				cpu_handle_depth.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV) * cpu_index;
 			}
-			
-			
+
+
 			D3D12_VIEWPORT viewport = { FLOAT(x), FLOAT(y), FLOAT(w), FLOAT(h), 0.0f, 1.0f };
 			D3D12_RECT rect = { x, y, w, h };
 			ref.cmdlist->RSSetViewports(1, &viewport);
@@ -447,23 +447,23 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_TEXTURE
-		if(type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
+		if (type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
 			auto w = c.set_texture.rect.w;
 			auto h = c.set_texture.rect.h;
 			auto cpu_handle = heap_shader->GetCPUDescriptorHandleForHeapStart();
 			auto gpu_handle = heap_shader->GetGPUDescriptorHandleForHeapStart();
 			auto slot = c.set_texture.slot;
 
-			if(res == nullptr) {
+			if (res == nullptr) {
 				fmt_color = DXGI_FORMAT_R8G8B8A8_UNORM;
 				res = create_resource(name, dev, w, h, fmt_color, D3D12_RESOURCE_FLAG_NONE);
-				if(!res) {
+				if (!res) {
 					err_printf("create_resource(texture) name=%s\n", name.c_str());
 					exit(1);
 				}
 				auto scratch = create_resource(name, dev, c.set_texture.size, 1,
-					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
-				if(!scratch) {
+						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
+				if (!scratch) {
 					err_printf("create_resource(texture scratch) name=%s\n", name.c_str());
 					exit(1);
 				}
@@ -485,13 +485,13 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 				dest.SubresourceIndex = subres_index;
 				src.PlacedFootprint = footprint;
-				ref.cmdlist->CopyTextureRegion(&dest, 0, 0, 0, &src, nullptr );
+				ref.cmdlist->CopyTextureRegion(&dest, 0, 0, 0, &src, nullptr);
 				D3D12_RESOURCE_BARRIER barrier = get_barrier(res, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON);
 				ref.cmdlist->ResourceBarrier(1, &barrier);
 			}
 			D3D12_RESOURCE_DESC desc_res = res->GetDesc();
-			if(type == CMD_SET_TEXTURE) {
-				if(mgpu_handle.count(name) == 0) {
+			if (type == CMD_SET_TEXTURE) {
+				if (mgpu_handle.count(name) == 0) {
 					D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 					desc.Format = fmt_color;
 					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -501,8 +501,8 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					dev->CreateShaderResourceView(res, &desc, cpu_handle);
 					mgpu_handle[name] = handle_index_shader++;
 				}
-				
-				if(mbarrier.count(name) && (desc_res.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET) ) {
+
+				if (mbarrier.count(name) && (desc_res.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)) {
 					D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
 					barrier.Transition = mbarrier[name];
 					barrier.Transition.pResource = mres[name];
@@ -513,9 +513,9 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				gpu_handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * gpu_index;
 				ref.cmdlist->SetGraphicsRootDescriptorTable((slot * RDT_SLOT_MAX) + RDT_SLOT_SRV, gpu_handle);
 			}
-			if(type == CMD_SET_TEXTURE_UAV) {
-				if(mgpu_handle.count(name) == 0) {
-					for(int i = 0 ; i < desc_res.MipLevels; i++) {
+			if (type == CMD_SET_TEXTURE_UAV) {
+				if (mgpu_handle.count(name) == 0) {
+					for (int i = 0 ; i < desc_res.MipLevels; i++) {
 						D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
 						desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
 						desc.Texture2D.MipSlice = i;
@@ -529,7 +529,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 							exit(1);
 						}
 						mgpu_handle[oden_get_mipmap_name(name, i)] = handle_index_shader;
-						if(i == 0)
+						if (i == 0)
 							mgpu_handle[name] = handle_index_shader;
 						handle_index_shader++;
 					}
@@ -545,20 +545,20 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_CONSTANT
-		if(type == CMD_SET_CONSTANT) {
+		if (type == CMD_SET_CONSTANT) {
 			auto cpu_handle = heap_shader->GetCPUDescriptorHandleForHeapStart();
 			auto gpu_handle = heap_shader->GetGPUDescriptorHandleForHeapStart();
 			auto slot = c.set_constant.slot;
-			if(res == nullptr) {
+			if (res == nullptr) {
 				res = create_resource(name, dev, c.set_constant.size, 1,
-					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_constant.data, c.set_constant.size);
-				if(!res) {
+						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_constant.data, c.set_constant.size);
+				if (!res) {
 					err_printf("create_resource(cbv) name=%s\n", name.c_str());
 					exit(1);
 				}
 				mres[name] = res;
 			}
-			if(mgpu_handle.count(name) == 0) {
+			if (mgpu_handle.count(name) == 0) {
 				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 				D3D12_RESOURCE_DESC desc_res = res->GetDesc();
 				desc.SizeInBytes = (desc_res.Width + 255) & ~255;
@@ -583,11 +583,11 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_VERTEX
-		if(type == CMD_SET_VERTEX) {
-			if(res == nullptr) {
+		if (type == CMD_SET_VERTEX) {
+			if (res == nullptr) {
 				res = create_resource(name, dev, c.set_vertex.size, 1,
-					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_vertex.data, c.set_vertex.size);
-				if(!res) {
+						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_vertex.data, c.set_vertex.size);
+				if (!res) {
 					err_printf("create_resource(buffer vertex) name=%s\n", name.c_str());
 					exit(1);
 				}
@@ -601,18 +601,18 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_INDEX
-		if(type == CMD_SET_INDEX) {
+		if (type == CMD_SET_INDEX) {
 			auto res = mres[name];
-			if(res == nullptr && c.set_index.data) {
+			if (res == nullptr && c.set_index.data) {
 				res = create_resource(name, dev, c.set_vertex.size, 1,
-					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_index.data, c.set_index.size);
-				if(!res) {
+						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_index.data, c.set_index.size);
+				if (!res) {
 					err_printf("create_resource(buffer index) name=%s\n", name.c_str());
 					exit(1);
 				}
 				mres[name] = res;
 			}
-			if(c.set_index.data) {
+			if (c.set_index.data) {
 				D3D12_INDEX_BUFFER_VIEW view = {
 					res->GetGPUVirtualAddress(), UINT(c.set_index.size), DXGI_FORMAT_R32_UINT
 				};
@@ -623,13 +623,13 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_SET_SHADER
-		if(type == CMD_SET_SHADER) {
-			if(pstate == nullptr || c.set_shader.is_update) {
-				if(pstate)
+		if (type == CMD_SET_SHADER) {
+			if (pstate == nullptr || c.set_shader.is_update) {
+				if (pstate)
 					pstate->Release();
 				pstate = nullptr;
 				mpstate[name] = nullptr;
-				
+
 				std::vector<uint8_t> vs;
 				std::vector<uint8_t> gs;
 				std::vector<uint8_t> ps;
@@ -650,9 +650,9 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				//IA
 				gpstate_desc.InputLayout.pInputElementDescs = layout;
 				gpstate_desc.InputLayout.NumElements = _countof(layout);
-				
+
 				//Blend
-				for(auto & bs : gpstate_desc.BlendState.RenderTarget) {
+				for (auto & bs : gpstate_desc.BlendState.RenderTarget) {
 					bs.BlendEnable = FALSE;
 					bs.LogicOpEnable = FALSE;
 					bs.SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -675,30 +675,30 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				gpstate_desc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
 				gpstate_desc.RasterizerState.DepthClipEnable = TRUE;
 				gpstate_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-				
-				for(auto & fmt : gpstate_desc.RTVFormats)
+
+				for (auto & fmt : gpstate_desc.RTVFormats)
 					fmt = fmt_color;
-				
+
 				cpstate_desc.pRootSignature = rootsig;
 				cpstate_desc.CS = create_shader_from_file(name, "CSMain", "cs_5_0", cs);
-				
-				if(!vs.empty() && !ps.empty()) {
+
+				if (!vs.empty() && !ps.empty()) {
 					auto status = dev->CreateGraphicsPipelineState(&gpstate_desc, IID_PPV_ARGS(&pstate));
-					if(pstate)
+					if (pstate)
 						mpstate[name] = pstate;
 					else
 						err_printf("CreateGraphicsPipelineState : %s : status=%p\n", name.c_str(), status);
 				}
-				
-				if(!cs.empty()) {
+
+				if (!cs.empty()) {
 					auto status = dev->CreateComputePipelineState(&cpstate_desc, IID_PPV_ARGS(&pstate));
-					if(pstate)
+					if (pstate)
 						mpstate[name] = pstate;
 					else
 						err_printf("CreateComputePipelineState : %s : status=%p\n", name.c_str(), status);
 				}
 			}
-			if(pstate) {
+			if (pstate) {
 				ref.cmdlist->SetPipelineState(pstate);
 			} else {
 				err_printf("Compile Error %s\n", name.c_str());
@@ -707,15 +707,15 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_CLEAR
-		if(type == CMD_CLEAR) {
+		if (type == CMD_CLEAR) {
 			auto cpu_handle = heap_rtv->GetCPUDescriptorHandleForHeapStart();
 			auto index = mcpu_handle[name];
 			cpu_handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * index;
 			ref.cmdlist->ClearRenderTargetView(cpu_handle, c.clear.color, 0, NULL);
 		}
-		
+
 		//CMD_CLEAR_
-		if(type == CMD_CLEAR_DEPTH) {
+		if (type == CMD_CLEAR_DEPTH) {
 			auto cpu_handle = heap_dsv->GetCPUDescriptorHandleForHeapStart();
 			auto index = mcpu_handle[oden_get_depth_render_target_name(name)];
 			cpu_handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV) * index;
@@ -723,26 +723,26 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		}
 
 		//CMD_DRAW_INDEX
-		if(type == CMD_DRAW_INDEX) {
+		if (type == CMD_DRAW_INDEX) {
 			auto count = c.draw_index.count;
 			ref.cmdlist->DrawIndexedInstanced(count, 1, 0, 0, 0);
 		}
 
 		//CMD_DRAW
-		if(type == CMD_DRAW) {
+		if (type == CMD_DRAW) {
 			auto vertex_count = c.draw.vertex_count;
 			ref.cmdlist->DrawInstanced(vertex_count, 1, 0, 0);
 		}
 
 		//CMD_DISPATCH
-		if(type == CMD_DISPATCH) {
+		if (type == CMD_DISPATCH) {
 			auto x = c.dispatch.x;
 			auto y = c.dispatch.y;
 			auto z = c.dispatch.z;
 			ref.cmdlist->Dispatch(x, y, z);
 		}
 	}
-	for(auto & tb : mbarrier) {
+	for (auto & tb : mbarrier) {
 		D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
 		barrier.Transition = tb.second;
 		barrier.Transition.pResource = mres[tb.first];

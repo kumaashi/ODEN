@@ -58,7 +58,6 @@ with the VS2017
 
 Open oden.sln and choose full build, and run sample code.
 
-
 ## Why the name ODEN?
 
 ODEN is traditional japanese food for the night. ODEN puts various ingredients in one cooking pot.
@@ -80,6 +79,11 @@ Add variation sample code.
 
 MIT License
 https://opensource.org/licenses/mit-license.php
+
+## AStyle options
+
+http://astyle.sourceforge.net/
+astyle <sources> --indent=tab --style=linux --indent=force-tab --indent-after-parens --indent-col1-comments --pad-header
 
 ## Author
 
