@@ -21,46 +21,27 @@
  *
  */
 
-Texture2D<float4> tex0 : register(t0);
-Texture2D<float4> tex1 : register(t1);
-SamplerState PointSampler   : register(s0);
-SamplerState LinearSampler  : register(s1);
+RWTexture2D<float4> tex0 : register(u0);
+RWTexture2D<float4> tex1 : register(u1);
 
-cbuffer constdata : register(b0)
+[numthreads(1, 1, 1)]
+void CSMain(
+    uint3 groupId : SV_GroupID,
+    uint3 groupThreadId : SV_GroupThreadID,
+    uint3 dispatchThreadId : SV_DispatchThreadID,
+    uint groupIndex : SV_GroupIndex)
 {
-	float4 time;
-	float4 misc;
-	float4x4 world;
-	float4x4 proj;
-	float4x4 view;
-};
-
-struct PSInput
-{
-	float4 position : SV_POSITION;
-	float3 normal : NORMAL0;
-	float2 uv : TEXCOORD0;
-};
-
-PSInput VSMain(
-	float4 position : POSITION,
-	float3 normal : NORMAL,
-	float2 uv : TEXCOORD)
-{
-	PSInput result = (PSInput)0;
-	result.position = position;
-	result.normal = normal;
-	result.uv = uv;
-	result.position = mul(result.position, world);
-	result.position = mul(result.position, view);
-	result.position = mul(result.position, proj);
-	return result;
-}
-
-float4 PSMain(PSInput input) : SV_TARGET
-{
-	float4 col = tex0.SampleLevel(LinearSampler, input.uv, 0) +
-		float4(0.1, 0.2, 0.3, 1.0);
-	col.w = input.position.z / input.position.w;
-	return col;
+	uint2 idx = (dispatchThreadId.xy * 2);
+	float4 c = float4(0, 0, 0, 0);
+	c += tex0[idx + uint2(-1, -1)];
+	c += tex0[idx + uint2(-1,  0)];
+	c += tex0[idx + uint2(-1,  1)];
+	c += tex0[idx + uint2( 0, -1)];
+	c += tex0[idx + uint2( 0,  0)];
+	c += tex0[idx + uint2( 0,  1)];
+	c += tex0[idx + uint2( 1, -1)];
+	c += tex0[idx + uint2( 1,  0)];
+	c += tex0[idx + uint2( 1,  1)];
+	c /= 9;
+	tex1[dispatchThreadId.xy] = c;
 }

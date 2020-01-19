@@ -95,6 +95,30 @@ SetTexture(
 	c.set_texture.rect.h = h;
 	vcmd.push_back(c);
 }
+	
+void
+SetTextureUav(
+	std::vector<cmd> & vcmd, std::string name,
+	int slot, int w, int h, int miplevel,
+	void *data, size_t size, size_t stride)
+{
+	SetBarrierToTexture(vcmd, name);
+
+	cmd c;
+	c.type = CMD_SET_TEXTURE_UAV;
+	c.name = name;
+	c.set_texture.fmt = 0;
+	c.set_texture.slot = slot;
+	c.set_texture.data = data;
+	c.set_texture.size = size;
+	c.set_texture.stride = stride;
+	c.set_texture.rect.x = 0;
+	c.set_texture.rect.y = 0;
+	c.set_texture.rect.w = w;
+	c.set_texture.rect.h = h;
+	c.set_texture.miplevel = miplevel;
+	vcmd.push_back(c);
+}
 
 void SetVertex(std::vector<cmd> & vcmd, std::string name,
 	void *data, size_t size, size_t stride_size)
@@ -186,6 +210,17 @@ void Draw(std::vector<cmd> & vcmd, std::string name,
 	vcmd.push_back(c);
 }
 
+void Dispatch(std::vector<cmd> & vcmd, std::string name,
+	int x, int y, int z)
+{
+	cmd c;
+	c.type = CMD_DISPATCH;
+	c.name = name;
+	c.dispatch.x = x;
+	c.dispatch.y = y;
+	c.dispatch.z = z;
+	vcmd.push_back(c);
+}
 
 void DebugPrint(std::vector<cmd> & vcmd)
 {

@@ -22,23 +22,17 @@
  */
 
 Texture2D<float4> tex0 : register(t0);
-Texture2D<float4> tex1 : register(t1);
 SamplerState PointSampler   : register(s0);
 SamplerState LinearSampler  : register(s1);
 
-cbuffer constdata : register(b0)
+cbuffer binfo : register(b0)
 {
-	float4 time;
-	float4 misc;
-	float4x4 world;
-	float4x4 proj;
-	float4x4 view;
+	float4 direction;
 };
 
 struct PSInput
 {
 	float4 position : SV_POSITION;
-	float3 normal : NORMAL0;
 	float2 uv : TEXCOORD0;
 };
 
@@ -49,18 +43,43 @@ PSInput VSMain(
 {
 	PSInput result = (PSInput)0;
 	result.position = position;
-	result.normal = normal;
 	result.uv = uv;
-	result.position = mul(result.position, world);
-	result.position = mul(result.position, view);
-	result.position = mul(result.position, proj);
 	return result;
+}
+
+
+
+//https://github.com/Jam3/glsl-fast-gaussian-blur/
+float4 blur13(Texture2D<float4> image, float2 uv, float2 resolution, float2 direction, float miplevel) {
+	float4 color = 0;
+	float2 off1 = 1.411764705882353 * direction;
+	float2 off2 = 3.2941176470588234 * direction;
+	float2 off3 = 5.176470588235294 * direction;
+	color += tex0.SampleLevel(LinearSampler, uv, miplevel) * 0.1964825501511404;
+	color += tex0.SampleLevel(LinearSampler, uv + (off1 / resolution), miplevel) * 0.2969069646728344;
+	color += tex0.SampleLevel(LinearSampler, uv - (off1 / resolution), miplevel) * 0.2969069646728344;
+	color += tex0.SampleLevel(LinearSampler, uv + (off2 / resolution), miplevel) * 0.09447039785044732;
+	color += tex0.SampleLevel(LinearSampler, uv - (off2 / resolution), miplevel) * 0.09447039785044732;
+	color += tex0.SampleLevel(LinearSampler, uv + (off3 / resolution), miplevel) * 0.010381362401148057;
+	color += tex0.SampleLevel(LinearSampler, uv - (off3 / resolution), miplevel) * 0.010381362401148057;
+	color.a = 1.0;
+	return color;
 }
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-	float4 col = tex0.SampleLevel(LinearSampler, input.uv, 0) +
-		float4(0.1, 0.2, 0.3, 1.0);
-	col.w = input.position.z / input.position.w;
+	float2 uv = input.uv;
+	float2 dir = direction.zw;
+	float2 rtsize = direction.xy;
+	float4 col = float4(0, 0, 0, 0);
+
+	const int MAX_LEVEL = 10;
+	const float INV_MAX_LEVEL = (1.0 / float(MAX_LEVEL));
+	for(int i = MAX_LEVEL ; i >= 0; i--) {
+		float level  = float(i);
+		col += blur13(tex0, uv, rtsize, dir, level);
+		col *= 0.5;
+	}
+
 	return col;
 }

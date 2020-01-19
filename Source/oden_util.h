@@ -34,6 +34,9 @@ void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 void SetTexture(std::vector<cmd> & vcmd, std::string name,
 	int slot, int w = 0, int h = 0, void *data = nullptr,
 	size_t size = 0, size_t stride = 0);
+void SetTextureUav(std::vector<cmd> & vcmd, std::string name,
+	int slot, int w = 0, int h = 0, int miplevel = 0, void *data = nullptr,
+	size_t size = 0, size_t stride = 0);
 void SetVertex(std::vector<cmd> & vcmd, std::string name,
 	void *data, size_t size, size_t stride_size);
 void SetIndex(std::vector<cmd> & vcmd, std::string name,
@@ -43,13 +46,16 @@ void SetConstant(std::vector<cmd> & vcmd, std::string name,
 void SetShader(std::vector<cmd> & vcmd, std::string name,
 	bool is_update, bool is_cull = false, bool is_enable_depth = false);
 void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name,
-	 float col[4]);
+	float col[4]);
 void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name,
-	 float value);
+	float value);
 void DrawIndex(std::vector<cmd> & vcmd, std::string name,
-	 int start, int count);
+	int start, int count);
 void Draw(std::vector<cmd> & vcmd, std::string name,
-	 int vertex_count);
+	int vertex_count);
+void Dispatch(std::vector<cmd> & vcmd, std::string name,
+	int x, int y, int z);
+
 void DebugPrint(std::vector<cmd> & vcmd);
 
 };

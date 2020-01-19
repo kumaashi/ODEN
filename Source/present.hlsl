@@ -33,36 +33,30 @@ cbuffer constdata : register(b0)
 	float4x4 proj;
 	float4x4 view;
 };
+
 struct PSInput
 {
 	float4 position : SV_POSITION;
-	float4 color : TEXCOORD0;
+	float2 uv : TEXCOORD0;
 };
 
-PSInput VSMain(float4 position : POSITION, float2 uv : TEXCOORD)
+PSInput VSMain(
+	float4 position : POSITION,
+	float3 normal : NORMAL,
+	float2 uv : TEXCOORD)
 {
 	PSInput result = (PSInput)0;
-	float2 tuv = uv.xy * 0.5 + 0.5;
 	result.position = position;
-	result.color = tuv.xyxy;
-	result.color.y = 1.0 - result.color.y;
-	//result.position.xy *= 0.5;
+	result.uv = uv;
 	return result;
 }
 
 float4 PSMain(PSInput input) : SV_TARGET
 {
-	float2 uv = input.color.xy;
-	float2 uvs = input.color.xy;
-	uvs = uvs * 2.0 - 1.0;
-	if(abs(uvs.y) > 0.8) return float4(0, 0, 0, 1);
-	float vig = 1.0 - dot(uvs * 0.5, uvs);
-	uvs *= 0.95;
-	uvs = uvs * 0.5 + 0.5;
-	float edge = 0.5 * tex0.SampleLevel(LinearSampler, uvs, 0) - tex0.SampleLevel(LinearSampler, uv, 0);
-	edge = step(0.1, max(0, edge)) * max(0.3, abs(sin(time.x * 64.0)));
-	float4 col = tex0.SampleLevel(LinearSampler, uv, 0);
+	float2 uv = input.uv;
+	float4 col = tex0.SampleLevel(LinearSampler, uv, 0.0);
+	float4 blurcol = tex1.SampleLevel(LinearSampler, uv, 0.0);
 	col.x = tex0.SampleLevel(LinearSampler, uv + float2(0.001, 0.001), 0).x;
 	col.z = tex0.SampleLevel(LinearSampler, uv - float2(0.001, 0.001), 0).z;
-	return (col);// + edge * float4(1, 1, 0, 1)) * vig;
+	return col + blurcol;
 }

@@ -297,11 +297,28 @@ Update()
 	return is_active;
 }
 
+void
+GenerateMipmap(std::vector<cmd> & vcmd, std::string name, int w, int h)
+{
+	using namespace odenutil;
+	//Generate Mipmap
+	SetShader(vcmd, "genmipmap.hlsl", false, false, false);
+	int miplevel = oden_get_mipmap_max(w, h);
+	for(int i = 1; i < miplevel; i++) {
+		SetTextureUav(vcmd, name, 0, 0, 0, i - 1, nullptr, 0);
+		SetTextureUav(vcmd, name, 1, 0, 0, i - 0, nullptr, 0);
+		Dispatch(vcmd, "mip" + name, (w >> i), (h >> i), 1);
+	}
+}
+
 int main() {
 	using namespace odenutil;
 	enum {
 		Width = 1280,
 		Height = 720,
+		BloomWidth = Width >> 2,
+		BloomHeight = Height >> 2,
+		
 		BufferMax = 2,
 		ShaderSlotMax = 8,
 		ResourceMax = 1024,
@@ -311,10 +328,10 @@ int main() {
 	};
 
 	vertex_format vtx_rect[] = {
-		{{-1, 1, 0, 1}, {0,  1,  1}, {-1, 1}},
-		{{-1,-1, 0, 1}, {0,  1,  1}, {-1,-1}},
+		{{-1, 1, 0, 1}, {0,  1,  1}, { 0, 1}},
+		{{-1,-1, 0, 1}, {0,  1,  1}, { 0, 0}},
 		{{ 1, 1, 0, 1}, {0,  1,  1}, { 1, 1}},
-		{{ 1,-1, 0, 1}, {0,  1,  1}, { 1,-1}},
+		{{ 1,-1, 0, 1}, {0,  1,  1}, { 1, 0}},
 	};
 	uint32_t idx_rect[] = {
 		0, 1, 2,
@@ -352,8 +369,8 @@ int main() {
 		6, 2, 1,
 	};
 
-	auto appname = "testapp";
-	auto hwnd = InitWindow(appname, Width, Height);
+	auto app_name = "oden_sample_code";
+	auto hwnd = InitWindow(app_name, Width, Height);
 	int index = 0;
 	static std::vector<uint32_t> vtex;
 	for(int y = 0  ; y < TextureHeight; y++) {
@@ -369,19 +386,28 @@ int main() {
 		matrix4x4 proj;
 		matrix4x4 view;
 	};
+	struct bloominfo {
+		vector4 direction;
+	};
+	constdata cdata {};
+	bloominfo binfoX {};
+	bloominfo binfoY {};
 
-	constdata cdata;
 	MatrixStack stack;
 	std::vector<cmd> vcmd;
 
-	auto texname = "testtex";
+	auto tex_name = "testtex";
 	uint64_t frame = 0;
 	while(Update()) {
 		auto buffer_index = frame % BufferMax;
-		auto indexname = std::to_string(buffer_index);
-		auto backbuffername = "backbuffer" + indexname;
-		auto offscreenname = "offscreen" + indexname;
-		auto constantname = "testconstant" + indexname;
+		auto index_name = std::to_string(buffer_index);
+		auto backbuffer_name = oden_get_backbuffer_name(buffer_index);
+		auto offscreen_name = "offscreen" + index_name;
+		auto constant_name = "constcommon" + index_name;
+		auto constmip_name = "constmip" + index_name;
+		auto constbloom_name = "constbloom" + index_name;
+		auto bloomscreen_name = "bloomtexture" + index_name;
+		auto bloomscreen_nameX = bloomscreen_name + index_name + "_X";
 
 		bool is_update = false;
 
@@ -407,7 +433,7 @@ int main() {
 		//matrix : view
 		stack.Reset();
 		float tm = float(frame) * 0.01;
-		float rad = 128.0f;
+		float rad = 64.0f;
 		float height = 64.0f;
 		stack.LoadLookAt(
 			rad * cos(tm), height * sin(tm * 0.3), rad * sin(tm * 0.8),
@@ -422,44 +448,75 @@ int main() {
 
 		//Clear offscreenbuffer.
 		float clear_color[] = {0, 1, 1, 1};
-		SetRenderTarget(vcmd, offscreenname, Width, Height);
-		ClearRenderTarget(vcmd, offscreenname, clear_color);
-		ClearDepthRenderTarget(vcmd, offscreenname, 1.0f);
-		SetConstant(vcmd, constantname, 0, &cdata, sizeof(cdata));
+		SetRenderTarget(vcmd, offscreen_name, Width, Height);
+		ClearRenderTarget(vcmd, offscreen_name, clear_color);
+		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
+		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
 		SetShader(vcmd, "clear.hlsl", is_update, false, false);
 		SetVertex(vcmd, "clear_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "clear_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "clear_draw", 0, _countof(idx_rect));
 
 		//Draw Cube to offscreenbuffer.
-		ClearDepthRenderTarget(vcmd, offscreenname, 1.0f);
-		SetConstant(vcmd, constantname, 0, &cdata, sizeof(cdata));
-		SetTexture(vcmd, texname, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
+		SetRenderTarget(vcmd, offscreen_name, Width, Height);
+		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
+		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
+		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
 		SetShader(vcmd, "model.hlsl", is_update, false, true);
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
 		SetIndex(vcmd, "cube_ib", idx_cube, sizeof(idx_cube));
 		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube));
+		GenerateMipmap(vcmd, offscreen_name, Width, Height);
 
+		//Create Bloom X
+		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
+		SetTexture(vcmd, offscreen_name, 0);
+		SetShader(vcmd, "bloom.hlsl", is_update, false, false);
+		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
+		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
+		binfoX.direction.x = BloomWidth;
+		binfoX.direction.y = BloomHeight;
+		binfoX.direction.z = 1.0;
+		binfoX.direction.w = 0.0;
+		SetConstant(vcmd, constbloom_name + "X", 0, &binfoX, sizeof(binfoX));
+		DrawIndex(vcmd, "bloomX", 0, _countof(idx_rect));
+		GenerateMipmap(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
+
+		//Create Bloom Y
+		SetRenderTarget(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
+		SetTexture(vcmd, bloomscreen_nameX, 0);
+		SetShader(vcmd, "bloom.hlsl", is_update, false, false);
+		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
+		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
+		binfoY.direction.x = BloomWidth;
+		binfoY.direction.y = BloomHeight;
+		binfoY.direction.z = 0.0;
+		binfoY.direction.w = 1.0;
+		SetConstant(vcmd, constbloom_name + "Y", 0, &binfoY, sizeof(binfoY));
+		DrawIndex(vcmd, "bloomY", 0, _countof(idx_rect));
+		GenerateMipmap(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
+		
 		//Draw offscreen buffer to present buffer.
-		SetRenderTarget(vcmd, backbuffername, Width, Height);
-		ClearRenderTarget(vcmd, backbuffername, clear_color);
-		ClearDepthRenderTarget(vcmd, backbuffername, 1.0f);
-		SetTexture(vcmd, offscreenname, 0, 0, 0, nullptr, 0);
+		SetRenderTarget(vcmd, backbuffer_name, Width, Height);
+		ClearRenderTarget(vcmd, backbuffer_name, clear_color);
+		ClearDepthRenderTarget(vcmd, backbuffer_name, 1.0f);
+		SetTexture(vcmd, offscreen_name, 0);
+		SetTexture(vcmd, bloomscreen_name, 1);
 		SetShader(vcmd, "present.hlsl", is_update, false, false);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));
 
 		//Present CMD to ODEN.
-		SetBarrierToPresent(vcmd, backbuffername);
-		oden_present_graphics(appname, vcmd, hwnd, Width, Height, BufferMax, ResourceMax, ShaderSlotMax);
+		SetBarrierToPresent(vcmd, backbuffer_name);
+		oden_present_graphics(app_name, vcmd, hwnd, Width, Height, BufferMax, ResourceMax, ShaderSlotMax);
 
 		vcmd.clear();
 		frame++;
 	}
 	
 	//Terminate Oden.
-	oden_present_graphics(appname, vcmd, nullptr, Width, Height, BufferMax, ResourceMax, ShaderSlotMax);
+	oden_present_graphics(app_name, vcmd, nullptr, Width, Height, BufferMax, ResourceMax, ShaderSlotMax);
 	return 0;
 }
 
