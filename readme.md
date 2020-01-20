@@ -1,4 +1,4 @@
-# ODEN
+# ODEN 🍢
 
 ## About
 
