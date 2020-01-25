@@ -84,7 +84,7 @@ https://opensource.org/licenses/mit-license.php
 
 http://astyle.sourceforge.net/
 
-astyle <sources> --indent=tab --style=linux --indent=force-tab --indent-after-parens --indent-col1-comments --pad-header
+astyle <sources> --indent=tab --style=linux --indent=force-tab --indent-after-parens --indent-col1-comments --pad-header --pad-oper
 
 ## Author
 
