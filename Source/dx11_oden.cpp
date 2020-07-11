@@ -492,7 +492,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					if (pstate.vs) pstate.vs->Release();
 					if (pstate.gs) pstate.gs->Release();
 					if (pstate.ps) pstate.ps->Release();
-					if (pstate.cs) pstate.ps->Release();
+					if (pstate.cs) pstate.cs->Release();
 					mpstate.erase(name);
 
 					printf("Error SET_SHADER name=%s\n", name.c_str());
