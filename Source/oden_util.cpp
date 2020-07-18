@@ -78,7 +78,7 @@ void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 void
 SetTexture(
 	std::vector<cmd> & vcmd, std::string name,
-	int slot, int w, int h, void *data, size_t size, size_t stride)
+	int slot, int w, int h, void *data, size_t size, size_t stride_size)
 {
 	SetBarrierToTexture(vcmd, name);
 
@@ -89,7 +89,7 @@ SetTexture(
 	c.set_texture.slot = slot;
 	c.set_texture.data = data;
 	c.set_texture.size = size;
-	c.set_texture.stride = stride;
+	c.set_texture.stride_size = stride_size;
 	c.set_texture.rect.x = 0;
 	c.set_texture.rect.y = 0;
 	c.set_texture.rect.w = w;
@@ -101,7 +101,7 @@ void
 SetTextureUav(
 	std::vector<cmd> & vcmd, std::string name,
 	int slot, int w, int h, int miplevel,
-	void *data, size_t size, size_t stride)
+	void *data, size_t size, size_t stride_size)
 {
 	SetBarrierToTexture(vcmd, name);
 
@@ -112,7 +112,7 @@ SetTextureUav(
 	c.set_texture.slot = slot;
 	c.set_texture.data = data;
 	c.set_texture.size = size;
-	c.set_texture.stride = stride;
+	c.set_texture.stride_size = stride_size;
 	c.set_texture.rect.x = 0;
 	c.set_texture.rect.y = 0;
 	c.set_texture.rect.w = w;
@@ -225,7 +225,9 @@ void Dispatch(std::vector<cmd> & vcmd, std::string name,
 
 void DebugPrint(std::vector<cmd> & vcmd)
 {
+	printf("%s ================================\n", __func__);
 	for (auto & c : vcmd) {
+		printf("%s : ", c.name.c_str());
 		auto type = c.type;
 		switch (type) {
 		case CMD_NOP:

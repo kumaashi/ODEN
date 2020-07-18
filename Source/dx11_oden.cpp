@@ -71,10 +71,12 @@ CompileShaderFromFile(std::string name,
 }
 
 void
-oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
+oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 	void *handle, uint32_t w, uint32_t h,
 	uint32_t num, uint32_t heapcount, uint32_t slotmax)
 {
+	using namespace oden;
+
 	HWND hwnd = (HWND) handle;
 	static ID3D11Device *dev  = NULL;
 	static ID3D11DeviceContext *ctx = NULL;
@@ -265,7 +267,6 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			D3D11_VIEWPORT vp = { 0.0f, 0.0f, (FLOAT) vw, (FLOAT) vh, 0.0f, 1.0f, };
 			ctx->RSSetScissorRects(1, &rc);
 			ctx->RSSetViewports(1, &vp);
-			info_printf("vp=%f %f %f %f\n", 0.0f, 0.0f, (FLOAT) w, (FLOAT) h);
 			ctx->OMSetRenderTargets(1, &rtv, dsv);
 		}
 
@@ -284,7 +285,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				};
 				D3D11_SUBRESOURCE_DATA initdata = {};
 				initdata.pSysMem = c.set_texture.data;
-				initdata.SysMemPitch = c.set_texture.stride;
+				initdata.SysMemPitch = c.set_texture.stride_size;
 				initdata.SysMemSlicePitch = c.set_texture.size;
 				dev->CreateTexture2D(&desc, &initdata, &tex);
 				info_printf("CreateTexture2D : name=%s, tex=%p\n", name.c_str(), tex);
