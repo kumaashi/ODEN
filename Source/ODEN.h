@@ -31,6 +31,8 @@
 #include <vector>
 #include <algorithm>
 
+namespace oden {
+
 enum {
 	CMD_NOP,
 	CMD_SET_BARRIER,
@@ -77,7 +79,7 @@ struct cmd {
 			int slot;
 			void *data;
 			size_t size;
-			size_t stride;
+			size_t stride_size;
 			rect_t rect;
 			int miplevel;
 		} set_texture;
@@ -197,3 +199,5 @@ oden_get_cmd_name(int c)
 		return "CMD_DISPATCH";
 	return "__CMD_UNKNOWN__";
 }
+
+} //oden

@@ -34,6 +34,7 @@
 #include "MatrixStack.h"
 #include "Win.h"
 
+
 struct matrix4x4 {
 	float data[16];
 };
@@ -73,9 +74,8 @@ struct vertex_format {
 	vector2 uv;
 };
 
-
 void
-GenerateMipmap(std::vector<cmd> & vcmd, std::string name, int w, int h)
+GenerateMipmap(std::vector<oden::cmd> & vcmd, std::string name, int w, int h)
 {
 	using namespace odenutil;
 	//Generate Mipmap
@@ -90,6 +90,7 @@ GenerateMipmap(std::vector<cmd> & vcmd, std::string name, int w, int h)
 
 int main()
 {
+	using namespace oden;
 	using namespace odenutil;
 	enum {
 		Width = 1280,

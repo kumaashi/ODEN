@@ -49,6 +49,8 @@
 #define info_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
 #define err_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
 
+using namespace oden;
+
 ID3D12Resource *
 create_resource(std::string name, ID3D12Device *dev,
 	int w, int h, DXGI_FORMAT fmt, D3D12_RESOURCE_FLAGS flags,
@@ -137,7 +139,7 @@ create_shader_from_file(std::string fstr, std::string entry, std::string profile
 }
 
 void
-oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
+oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	void *handle, uint32_t w, uint32_t h,
 	uint32_t num, uint32_t heapcount, uint32_t slotmax)
 {
@@ -150,13 +152,13 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	};
 	struct DeviceBuffer {
 		ID3D12CommandAllocator *cmdalloc = nullptr;
-		ID3D12GraphicsCommandList *cmdlist = nullptr;
+		ID3D12GraphicsCommandList4 *cmdlist = nullptr;
 		ID3D12Fence *fence = nullptr;
 		std::vector<ID3D12Resource *> vscratch;
 		uint64_t value = 0;
 	};
 	static std::vector<DeviceBuffer> devicebuffer;
-	static ID3D12Device *dev = nullptr;
+	static ID3D12Device5 *dev = nullptr;
 	static ID3D12CommandQueue *queue = nullptr;
 	static IDXGISwapChain3 *swapchain = nullptr;
 	static ID3D12DescriptorHeap *heap_rtv = nullptr;
@@ -180,6 +182,13 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_shader = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
 
 		D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_1, IID_PPV_ARGS(&dev));
+		{
+			D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
+			dev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
+			if (options5.RaytracingTier < D3D12_RAYTRACING_TIER_1_0) {
+				exit(0);
+			}
+		}
 		dev->CreateCommandQueue(&cqdesc, IID_PPV_ARGS(&queue));
 		dev->CreateDescriptorHeap(&dhdesc_rtv, IID_PPV_ARGS(&heap_rtv));
 		dev->CreateDescriptorHeap(&dhdesc_dsv, IID_PPV_ARGS(&heap_dsv));
@@ -401,14 +410,6 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					mcpu_handle[name_color] = handle_index_rtv++;
 				};
 
-				if (mbarrier.count(name_color)) {
-					D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
-					barrier.Transition = mbarrier[name_color];
-					barrier.Transition.pResource = mres[name_color];
-					ref.cmdlist->ResourceBarrier(1, &barrier);
-				}
-				mbarrier.erase(name_color);
-
 				auto cpu_index = mcpu_handle[name_color];
 				cpu_handle_color.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * cpu_index;
 			}
@@ -437,7 +438,13 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				auto cpu_index = mcpu_handle[name_depth];
 				cpu_handle_depth.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV) * cpu_index;
 			}
-
+			if (mbarrier.count(name_color)) {
+				D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
+				barrier.Transition = mbarrier[name_color];
+				barrier.Transition.pResource = mres[name_color];
+				ref.cmdlist->ResourceBarrier(1, &barrier);
+			}
+			mbarrier.erase(name_color);
 
 			D3D12_VIEWPORT viewport = { FLOAT(x), FLOAT(y), FLOAT(w), FLOAT(h), 0.0f, 1.0f };
 			D3D12_RECT rect = { x, y, w, h };
