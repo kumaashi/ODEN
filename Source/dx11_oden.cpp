@@ -323,7 +323,6 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 				ID3D11UnorderedAccessView * uavnull[1] = { nullptr };
 				ctx->CSSetUnorderedAccessViews(0, 1, uavnull, nullptr);
 				if (srv) {
-					info_printf("XSSetShaderResources : name=%s, srv=%p\n", name.c_str(), srv);
 					ctx->VSSetShaderResources(slot, 1, &srv);
 					ctx->PSSetShaderResources(slot, 1, &srv);
 				} else {
