@@ -316,7 +316,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			if (x) x->Release();
 			x = nullptr;
 		};
-		auto mrelease = [=](auto & m) {
+		auto mrelease = [ = ](auto & m) {
 			for (auto & p : m) {
 				if (p.second)
 					printf("%s : release=%s\n", __FUNCTION__, p.first.c_str());

@@ -153,7 +153,7 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 	};
 
 	if (hwnd == nullptr) {
-		auto release = [](auto &a, const char * name = nullptr) {
+		auto release = [](auto & a, const char * name = nullptr) {
 			if (a) {
 				printf("release : %p : name=%s\n",
 					a, name ? name : "noname");
@@ -161,7 +161,7 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 			}
 			a = nullptr;
 		};
-		auto mrelease = [&](auto &m) {
+		auto mrelease = [&](auto & m) {
 			for (auto & p : m)
 				release(p.second, p.first.c_str());
 		};

@@ -31,7 +31,8 @@
 #include <vector>
 #include <algorithm>
 
-namespace oden {
+namespace oden
+{
 
 enum {
 	CMD_NOP,
