@@ -21,10 +21,8 @@
  *
  */
 
-RWTexture2D<float4> tex0 :
-register(u0);
-RWTexture2D<float4> tex1 :
-register(u1);
+RWTexture2D<float4> tex0 : register(u0);
+RWTexture2D<float4> tex1 : register(u1);
 
 [numthreads(1, 1, 1)]
 void CSMain(

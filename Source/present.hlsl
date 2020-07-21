@@ -21,17 +21,12 @@
  *
  */
 
-Texture2D<float4> tex0 :
-register(t0);
-Texture2D<float4> tex1 :
-register(t1);
-SamplerState PointSampler   :
-register(s0);
-SamplerState LinearSampler  :
-register(s1);
+Texture2D<float4> tex0 : register(t0);
+Texture2D<float4> tex1 : register(t1);
+SamplerState PointSampler   : register(s0);
+SamplerState LinearSampler  : register(s1);
 
-cbuffer constdata :
-register(b0)
+cbuffer constdata : register(b0)
 {
 	float4 time;
 	float4 misc;
@@ -40,10 +35,8 @@ register(b0)
 };
 
 struct PSInput {
-float4 position :
-	SV_POSITION;
-float2 uv :
-	TEXCOORD0;
+	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD0;
 };
 
 PSInput VSMain(
