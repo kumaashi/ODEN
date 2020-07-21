@@ -21,24 +21,18 @@
  *
  */
 
-Texture2D<float4> tex0 :
-register(t0);
-SamplerState PointSampler   :
-register(s0);
-SamplerState LinearSampler  :
-register(s1);
+Texture2D<float4> tex0 : register(t0);
+SamplerState PointSampler : register(s0);
+SamplerState LinearSampler : register(s1);
 
-cbuffer binfo :
-register(b0)
+cbuffer binfo : register(b0)
 {
 	float4 direction;
 };
 
 struct PSInput {
-float4 position :
-	SV_POSITION;
-float2 uv :
-	TEXCOORD0;
+	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD0;
 };
 
 PSInput VSMain(
@@ -51,8 +45,6 @@ PSInput VSMain(
 	result.uv = uv;
 	return result;
 }
-
-
 
 //https://github.com/Jam3/glsl-fast-gaussian-blur/
 float4 blur13(Texture2D<float4> image, float2 uv, float2 resolution, float2 direction, float miplevel)
