@@ -51,7 +51,7 @@
 
 using namespace oden;
 
-ID3D12Resource *
+static ID3D12Resource *
 create_resource(std::string name, ID3D12Device *dev,
 	int w, int h, DXGI_FORMAT fmt, D3D12_RESOURCE_FLAGS flags,
 	BOOL is_upload = FALSE, void *data = 0, size_t size = 0)
@@ -95,7 +95,7 @@ create_resource(std::string name, ID3D12Device *dev,
 	return res;
 }
 
-D3D12_RESOURCE_BARRIER
+static D3D12_RESOURCE_BARRIER
 get_barrier(ID3D12Resource *res, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after)
 {
 	D3D12_RESOURCE_BARRIER barrier = {};
@@ -108,7 +108,7 @@ get_barrier(ID3D12Resource *res, D3D12_RESOURCE_STATES before, D3D12_RESOURCE_ST
 	return barrier;
 }
 
-D3D12_SHADER_BYTECODE
+static D3D12_SHADER_BYTECODE
 create_shader_from_file(std::string fstr, std::string entry, std::string profile,
 	std::vector<uint8_t> &shader_code)
 {
