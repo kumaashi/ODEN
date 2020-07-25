@@ -329,7 +329,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			if (x) x->Release();
 			x = nullptr;
 		};
-		auto mrelease = [ = ](auto & m) {
+		auto mrelease = [](auto & m, auto release) {
 			for (auto & p : m) {
 				if (p.second)
 					printf("%s : release=%s\n", __FUNCTION__, p.first.c_str());
@@ -342,8 +342,8 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			release(ref.cmdlist);
 			release(ref.cmdalloc);
 		}
-		mrelease(mres);
-		mrelease(mpstate);
+		mrelease(mres, release);
+		mrelease(mpstate, release);
 		release(rootsig);
 		release(heap_shader);
 		release(heap_dsv);
@@ -482,7 +482,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					exit(1);
 				}
 				auto scratch = create_resource(name, dev, c.set_texture.size, 1,
-						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
+					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
 				if (!scratch) {
 					err_printf("create_resource(texture scratch) name=%s\n", name.c_str());
 					exit(1);
