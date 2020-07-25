@@ -45,8 +45,10 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 
+#pragma warning(disable:4838)
+
 #define info_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
-#define err_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
+#define err_printf(...) printf("ERR:" __FUNCTION__ ":" __VA_ARGS__)
 
 static HRESULT
 CompileShaderFromFile(std::string name,

@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  *
  */
+#include "ODEN.h"
 
 #include <stdio.h>
 #include <windows.h>
@@ -34,8 +35,6 @@
 #include <algorithm>
 #include <DirectXMath.h>
 
-#include "ODEN.h"
-
 #pragma comment(lib, "gdi32.lib")
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "winmm.lib")
@@ -47,7 +46,15 @@
 #pragma comment(lib, "D3DCompiler.lib")
 
 #define info_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
-#define err_printf(...) printf("INFO:" __FUNCTION__ ":" __VA_ARGS__)
+#define err_printf(...) printf("ERR:" __FUNCTION__ ":" __VA_ARGS__)
+
+#ifdef ODEN_SUPPORT_DXR
+	#define ID3D12DeviceIF ID3D12Device5
+	#define ID3D12GraphicsCommandListIF ID3D12GraphicsCommandList4
+#else //ODEN_SUPPORT_DXR
+	#define ID3D12DeviceIF ID3D12Device
+	#define ID3D12GraphicsCommandListIF ID3D12GraphicsCommandList
+#endif //ODEN_SUPPORT_DXR
 
 using namespace oden;
 
@@ -152,13 +159,13 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	};
 	struct DeviceBuffer {
 		ID3D12CommandAllocator *cmdalloc = nullptr;
-		ID3D12GraphicsCommandList4 *cmdlist = nullptr;
+		ID3D12GraphicsCommandListIF *cmdlist = nullptr;
 		ID3D12Fence *fence = nullptr;
 		std::vector<ID3D12Resource *> vscratch;
 		uint64_t value = 0;
 	};
 	static std::vector<DeviceBuffer> devicebuffer;
-	static ID3D12Device5 *dev = nullptr;
+	static ID3D12Device *dev = nullptr;
 	static ID3D12CommandQueue *queue = nullptr;
 	static IDXGISwapChain3 *swapchain = nullptr;
 	static ID3D12DescriptorHeap *heap_rtv = nullptr;
@@ -181,7 +188,8 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_dsv = { D3D12_DESCRIPTOR_HEAP_TYPE_DSV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_shader = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
 
-		D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_11_1, IID_PPV_ARGS(&dev));
+		D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&dev));
+#ifdef ODEN_SUPPORT_DXR
 		{
 			D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
 			dev->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5));
@@ -189,6 +197,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				exit(0);
 			}
 		}
+#endif //ODEN_SUPPORT_DXR
 		dev->CreateCommandQueue(&cqdesc, IID_PPV_ARGS(&queue));
 		dev->CreateDescriptorHeap(&dhdesc_rtv, IID_PPV_ARGS(&heap_rtv));
 		dev->CreateDescriptorHeap(&dhdesc_dsv, IID_PPV_ARGS(&heap_dsv));
@@ -250,11 +259,15 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			vroot_param.push_back(root_param);
 		}
 
+		//https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_static_sampler_desc
 		D3D12_STATIC_SAMPLER_DESC sampler[2];
 		const D3D12_STATIC_SAMPLER_DESC default_sampler = {
 			D3D12_FILTER_MIN_MAG_MIP_POINT,
-			D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-			0.0f, 0.0f, D3D12_COMPARISON_FUNC_NEVER, D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK, 0.0f, D3D12_FLOAT32_MAX,
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+			D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+			0.0f, 0,
+			D3D12_COMPARISON_FUNC_NEVER, D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK, 0.0f, D3D12_FLOAT32_MAX,
 			0, 0, D3D12_SHADER_VISIBILITY_ALL,
 		};
 
@@ -694,7 +707,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					if (pstate)
 						mpstate[name] = pstate;
 					else
-						err_printf("CreateGraphicsPipelineState : %s : status=%p\n", name.c_str(), status);
+						err_printf("CreateGraphicsPipelineState : %s : status=0x%08X\n", name.c_str(), status);
 				}
 
 				if (!cs.empty()) {
@@ -702,7 +715,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					if (pstate)
 						mpstate[name] = pstate;
 					else
-						err_printf("CreateComputePipelineState : %s : status=%p\n", name.c_str(), status);
+						err_printf("CreateComputePipelineState : %s : status=0x%08X\n", name.c_str(), status);
 				}
 			}
 			if (pstate) {

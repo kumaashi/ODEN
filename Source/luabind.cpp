@@ -34,6 +34,8 @@ extern "C" {
 #include "oden_util.h"
 #include "Win.h"
 
+#pragma warning(disable:4838)
+
 namespace
 {
 
@@ -41,7 +43,8 @@ union color {
 	struct {
 		uint8_t r, g, b, a;
 	};
-	void set(float x, float y, float z, float w) {
+	void
+	set(float x, float y, float z, float w) {
 		r = uint8_t(x * float(0xFF));
 		g = uint8_t(y * float(0xFF));
 		b = uint8_t(z * float(0xFF));
@@ -57,7 +60,9 @@ struct float4 {
 		};
 		float data[4];
 	};
-	void print()
+
+	void
+	print()
 	{
 		printf("%.5f, %.5f, %.5f, %.5f\n", x, y, z, w);
 	}
@@ -70,7 +75,9 @@ struct vector3 {
 		};
 		float data[3];
 	};
-	void print()
+
+	void
+	print()
 	{
 		printf("%.5f, %.5f\n", x, y, z);
 	}
@@ -83,7 +90,9 @@ struct vector2 {
 		};
 		float data[2];
 	};
-	void print()
+
+	void
+	print()
 	{
 		printf("%.5f, %.5f\n", x, y);
 	}
@@ -96,7 +105,9 @@ struct float4x4 {
 		};
 		float data[16];
 	};
-	void print()
+
+	void
+	print()
 	{
 		printf("print:%p\n", this);
 		for (auto & x : v)
@@ -108,7 +119,9 @@ struct vertex_format {
 	float4 pos;
 	vector3 nor;
 	vector2 uv;
-	void print()
+
+	void
+	print()
 	{
 		pos.print();
 		nor.print();;
@@ -196,7 +209,9 @@ struct texture {
 struct constant_format {
 	float4 v[16];
 	float4x4 m[4];
-	void print()
+
+	void
+	print()
 	{
 		printf("%s : this=%p ------------------\n", __func__, this);
 		for (auto & x : v) {
@@ -210,25 +225,56 @@ struct constant_format {
 };
 
 static lua_State *L = nullptr;
+enum {
+	I_NAME = 1,
+	I_ARGS = 2,
+};
+
 static std::vector<oden::cmd> vcmd;
 static std::map<std::string, std::vector<vertex_format>> mvertex;
 static std::map<std::string, std::vector<uint32_t>> mindex;
 static std::map<std::string, texture<color> > mtexture;
 static std::map<std::string, constant_format> mconstant;
 
-enum {
-	I_NAME = 1,
-	I_ARGS = 2,
-};
+static void
+l_show_table(lua_State* L)
+{
+	lua_pushnil(L);
+	while (lua_next(L, -2)) {
+		switch (lua_type(L, -2)) {
+		case LUA_TNUMBER :
+			printf("key=%d, ", (int)lua_tointeger(L, -2));
+			break;
+		case LUA_TSTRING :
+			printf("key=%s, ", lua_tostring(L, -2));
+			break;
+		}
+		switch (lua_type(L, -1)) {
+		case LUA_TNUMBER :
+			printf("value=%d\n", (int)lua_tointeger(L, -1));
+			break;
+		case LUA_TSTRING :
+			printf("value=%s\n", lua_tostring(L, -1));
+			break;
+		case LUA_TBOOLEAN :
+			printf("value=%d\n", lua_toboolean(L, -1));
+			break;
+		default:
+			printf("value=%s\n", lua_typename(L, lua_type(L, -1)));
+			break;
+		}
+		lua_pop(L, I_NAME);
+	}
+}
 
 static std::string
-get_vertex_name(const char *name)
+get_vertex_buffer_name(const char *name)
 {
 	return name + std::string("_vb");
 }
 
 static std::string
-get_index_name(const char *name)
+get_index_buffer_name(const char *name)
 {
 	return name + std::string("_ib");
 }
@@ -242,7 +288,7 @@ get_texture_name(const char *name)
 static int
 l_create_vertex(lua_State *L)
 {
-	auto name = get_vertex_name(luaL_checkstring(L, I_NAME));
+	auto name = get_vertex_buffer_name(luaL_checkstring(L, I_NAME));
 	lua_getfield(L, I_ARGS, "size");
 	auto size = static_cast<size_t>(luaL_checknumber(L, -1));
 	if (mvertex.count(name) == 0) {
@@ -257,7 +303,7 @@ l_create_vertex(lua_State *L)
 static int
 l_update_vertex(lua_State *L)
 {
-	auto name = get_vertex_name(luaL_checkstring(L, I_NAME));
+	auto name = get_vertex_buffer_name(luaL_checkstring(L, I_NAME));
 	if (mvertex.count(name) == 0) {
 		printf("%s : cant found : name=%s\n",
 			__func__, name.c_str());
@@ -310,7 +356,7 @@ l_update_vertex(lua_State *L)
 static int
 l_set_vertex(lua_State *L)
 {
-	auto name = get_vertex_name(luaL_checkstring(L, I_NAME));
+	auto name = get_vertex_buffer_name(luaL_checkstring(L, I_NAME));
 	if (mvertex.count(name) == 0) {
 		printf("%s : cant found : name=%s\n",
 			__func__, name.c_str());
@@ -329,7 +375,7 @@ l_set_vertex(lua_State *L)
 static int
 l_create_index(lua_State *L)
 {
-	auto name = get_index_name(luaL_checkstring(L, I_NAME));
+	auto name = get_index_buffer_name(luaL_checkstring(L, I_NAME));
 	lua_getfield(L, I_ARGS, "size");
 	auto size = static_cast<size_t>(luaL_checknumber(L, -1));
 	if (mindex.count(name) == 0) {
@@ -344,7 +390,7 @@ l_create_index(lua_State *L)
 static int
 l_update_index(lua_State *L)
 {
-	auto name = get_index_name(luaL_checkstring(L, I_NAME));
+	auto name = get_index_buffer_name(luaL_checkstring(L, I_NAME));
 	if (mindex.count(name) == 0) {
 		printf("%s : cant found : name=%s\n",
 			__func__, name.c_str());
@@ -369,7 +415,7 @@ l_update_index(lua_State *L)
 static int
 l_set_index(lua_State *L)
 {
-	auto name = get_index_name(luaL_checkstring(L, I_NAME));
+	auto name = get_index_buffer_name(luaL_checkstring(L, I_NAME));
 	if (mindex.count(name) == 0) {
 		printf("%s : cant found : name=%s\n",
 			__func__, name.c_str());
@@ -580,37 +626,6 @@ l_set_constant(lua_State *L)
 	return 0;
 }
 
-static void
-l_show_table(lua_State* L)
-{
-	lua_pushnil(L);
-	while (lua_next(L, -2)) {
-		switch (lua_type(L, -2)) {
-		case LUA_TNUMBER :
-			printf("key=%d, ", lua_tointeger(L, -2));
-			break;
-		case LUA_TSTRING :
-			printf("key=%s, ", lua_tostring(L, -2));
-			break;
-		}
-		switch (lua_type(L, -1)) {
-		case LUA_TNUMBER :
-			printf("value=%d\n", lua_tointeger(L, -1));
-			break;
-		case LUA_TSTRING :
-			printf("value=%s\n", lua_tostring(L, -1));
-			break;
-		case LUA_TBOOLEAN :
-			printf("value=%d\n", lua_toboolean(L, -1));
-			break;
-		default:
-			printf("value=%s\n", lua_typename(L, lua_type(L, -1)));
-			break;
-		}
-		lua_pop(L, I_NAME);
-	}
-}
-
 static int
 l_update_constant_float4(lua_State *L)
 {
@@ -675,6 +690,7 @@ static int
 oden_funcs(lua_State* l)
 {
 	static const luaL_Reg lua_funcs[] = {
+		//ODEN API
 		{"clear_depthrendertarget", l_clear_depthrendertarget},
 		{"clear_rendertarget", l_clear_rendertarget},
 		{"dispatch", l_dispatch},
@@ -691,6 +707,7 @@ oden_funcs(lua_State* l)
 		{"set_textureuav", l_set_textureuav},
 		{"set_vertex", l_set_vertex},
 
+		//Bind utils.
 		{"create_vertex", l_create_vertex},
 		{"create_index", l_create_index},
 		{"update_vertex", l_update_vertex},
@@ -721,10 +738,13 @@ static void
 lua_reload()
 {
 	lua_term();
+
 	L = luaL_newstate();
+
 	luaL_openlibs(L);
 	luaL_requiref(L, "oden", oden_funcs, 1);
 	luaL_loadfile(L, "update.lua");
+
 	printf("BOOT... : %s\n", __func__);
 	lua_pcall(L, 0, 0, 0);
 	printf("DONE... : %s\n", __func__);
