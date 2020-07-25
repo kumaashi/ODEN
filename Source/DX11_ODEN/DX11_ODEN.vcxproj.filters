@@ -34,14 +34,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\clear.hlsl">
-      <Filter>ソース ファイル</Filter>
-    </FxCompile>
-    <FxCompile Include="..\model.hlsl">
-      <Filter>ソース ファイル</Filter>
-    </FxCompile>
-    <FxCompile Include="..\present.hlsl">
-      <Filter>ソース ファイル</Filter>
-    </FxCompile>
+    <FxCompile Include="..\shaders\clear.hlsl" />
+    <FxCompile Include="..\shaders\model.hlsl" />
+    <FxCompile Include="..\shaders\present.hlsl" />
   </ItemGroup>
 </Project>

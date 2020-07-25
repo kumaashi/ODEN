@@ -79,7 +79,7 @@ GenerateMipmap(std::vector<oden::cmd> & vcmd, std::string name, int w, int h)
 {
 	using namespace odenutil;
 	//Generate Mipmap
-	SetShader(vcmd, "genmipmap.hlsl", false, false, false);
+	SetShader(vcmd, "./shaders/genmipmap.hlsl", false, false, false);
 	int miplevel = oden_get_mipmap_max(w, h);
 	for (int i = 1; i < miplevel; i++) {
 		SetTextureUav(vcmd, name, 0, 0, 0, i - 1, nullptr, 0);
@@ -231,7 +231,7 @@ int main()
 		ClearRenderTarget(vcmd, offscreen_name, clear_color);
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
 		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
-		SetShader(vcmd, "clear.hlsl", is_update, false, false);
+		SetShader(vcmd, "./shaders/clear.hlsl", is_update, false, false);
 		SetVertex(vcmd, "clear_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "clear_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "clear_draw", 0, _countof(idx_rect));
@@ -241,7 +241,7 @@ int main()
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
 		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
 		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
-		SetShader(vcmd, "model.hlsl", is_update, false, true);
+		SetShader(vcmd, "./shaders/model.hlsl", is_update, false, true);
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
 		SetIndex(vcmd, "cube_ib", idx_cube, sizeof(idx_cube));
 		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube));
@@ -250,7 +250,7 @@ int main()
 		//Create Bloom X
 		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
 		SetTexture(vcmd, offscreen_name, 0);
-		SetShader(vcmd, "bloom.hlsl", is_update, false, false);
+		SetShader(vcmd, "./shaders/bloom.hlsl", is_update, false, false);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		binfoX.direction.x = BloomWidth;
@@ -264,7 +264,7 @@ int main()
 		//Create Bloom Y
 		SetRenderTarget(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
 		SetTexture(vcmd, bloomscreen_nameX, 0);
-		SetShader(vcmd, "bloom.hlsl", is_update, false, false);
+		SetShader(vcmd, "./shaders/bloom.hlsl", is_update, false, false);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		binfoY.direction.x = BloomWidth;
@@ -281,7 +281,7 @@ int main()
 		ClearDepthRenderTarget(vcmd, backbuffer_name, 1.0f);
 		SetTexture(vcmd, offscreen_name, 0);
 		SetTexture(vcmd, bloomscreen_name, 1);
-		SetShader(vcmd, "present.hlsl", is_update, false, false);
+		SetShader(vcmd, "./shaders/present.hlsl", is_update, false, false);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));

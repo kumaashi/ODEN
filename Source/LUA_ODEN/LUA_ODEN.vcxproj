@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{BB4AACD4-78E5-448B-B74A-CB1C7129E168}</ProjectGuid>
-    <RootNamespace>DX11ODEN</RootNamespace>
+    <ProjectGuid>{7F3CF279-3948-4772-9E6B-66ECCD92053D}</ProjectGuid>
+    <RootNamespace>LUA_BIND</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -69,7 +69,14 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(ProjectDir)..\3rd\lua\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)..\3rd\lua\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(ProjectDir)..\3rd\lua\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)..\3rd\lua\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -87,7 +94,8 @@
     </ClCompile>
     <PostBuildEvent>
       <Command>mkdir $(TargetDir)shaders
-copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\</Command>
+copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\
+copy $(ProjectDir)..\update.lua $(TargetDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -119,14 +127,10 @@ copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\</Command>
     </Link>
     <PostBuildEvent>
       <Command>mkdir $(TargetDir)shaders
-copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\</Command>
+copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\
+copy $(ProjectDir)..\update.lua $(TargetDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\dx11_oden.cpp" />
-    <ClCompile Include="..\oden_util.cpp" />
-    <ClCompile Include="..\sample_code.cpp" />
-  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\oden.h" />
     <ClInclude Include="..\oden_util.h" />
@@ -144,6 +148,14 @@ copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\dx11_oden.cpp" />
+    <ClCompile Include="..\oden_util.cpp" />
+    <ClCompile Include="..\oden_lua.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\update.lua" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

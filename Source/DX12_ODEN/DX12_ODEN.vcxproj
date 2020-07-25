@@ -86,7 +86,8 @@
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)..\*.hlsl $(TargetDir)</Command>
+      <Command>mkdir $(TargetDir)shaders
+copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -117,7 +118,8 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(ProjectDir)..\*.hlsl $(TargetDir)</Command>
+      <Command>mkdir $(TargetDir)shaders
+copy $(ProjectDir)..\shaders\*.hlsl $(TargetDir)shaders\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -125,15 +127,15 @@
     <ClInclude Include="..\oden_util.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\clear.hlsl">
+    <FxCompile Include="..\shaders\clear.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="..\model.hlsl">
+    <FxCompile Include="..\shaders\model.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="..\present.hlsl">
+    <FxCompile Include="..\shaders\present.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

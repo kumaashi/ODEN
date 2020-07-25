@@ -49,7 +49,7 @@ function update(frame, width, height)
 		a = 1}
 	clear_color.r = clear_color.r * 0.01;
 	oden.clear_rendertarget(backbuffer_name, clear_color)
-	oden.set_shader("clear.hlsl", {is_update = false, is_cull = false, is_enable_depth = false})
+	oden.set_shader("./shaders/clear.hlsl", {is_update = false, is_cull = false, is_enable_depth = false})
 	oden.set_constant(name_rect, {slot=0})
 	oden.set_vertex(name_rect)
 	oden.set_index(name_rect)
