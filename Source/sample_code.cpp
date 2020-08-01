@@ -56,7 +56,7 @@ struct vector3 {
 	float x, y, z;
 	void print()
 	{
-		printf("%.5f, %.5f, %.5\n", x, y, z);
+		printf("%.5f, %.5f, %.5f\n", x, y, z);
 	}
 };
 
