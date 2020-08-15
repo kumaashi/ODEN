@@ -624,7 +624,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		if (type == CMD_SET_INDEX) {
 			auto res = mres[name];
 			if (res == nullptr && c.set_index.data) {
-				res = create_resource(name, dev, c.set_vertex.size, 1,
+				res = create_resource(name, dev, c.set_index.size, 1,
 						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_index.data, c.set_index.size);
 				if (!res) {
 					err_printf("create_resource(buffer index) name=%s\n", name.c_str());
