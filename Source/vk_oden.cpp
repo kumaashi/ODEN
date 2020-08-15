@@ -150,8 +150,6 @@ VKAPI_CALL debug_callback(
 inline void
 bind_debug_fn(VkInstance instance, VkDebugReportCallbackCreateInfoEXT ext)
 {
-
-
 	VkDebugReportCallbackEXT callback;
 	PFN_vkCreateDebugReportCallbackEXT func = PFN_vkCreateDebugReportCallbackEXT(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
@@ -198,7 +196,7 @@ oden::oden_present_graphics(
 	static std::vector<DeviceBuffer> devicebuffer;
 
 	auto alloc_devmem = [ = ](auto name, VkDeviceSize size, VkMemoryPropertyFlags flags) {
-		if(mdevmem.count(name) != 0)
+		if (mdevmem.count(name) != 0)
 			LOG_INFO("already allocated name=%s\n", name.c_str());
 
 		VkMemoryAllocateInfo ma_info = {
@@ -386,7 +384,8 @@ oden::oden_present_graphics(
 			//http://vulkan-spec-chunked.ahcox.com/ch29s05.html#VkSurfaceTransformFlagBitsKHR
 			.preTransform       = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
 			.compositeAlpha     = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-			.presentMode        = VK_PRESENT_MODE_FIFO_KHR,
+			//.presentMode        = VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+			.presentMode        = VK_PRESENT_MODE_IMMEDIATE_KHR,
 			.clipped            = VK_TRUE,
 			.oldSwapchain       = VK_NULL_HANDLE,
 		};
@@ -504,8 +503,6 @@ oden::oden_present_graphics(
 			auto w = c.set_render_target.rect.w;
 			auto h = c.set_render_target.rect.h;
 
-			//ìoò^Ç≥ÇÍÇƒÇ¢Ç»ÇØÇÍÇŒImage, ImageView, FrameBufferÇçÏê¨Ç∑ÇÈ
-
 			//COLOR
 			auto name_color = name;
 			auto image_color = mimages[name_color];
@@ -593,9 +590,10 @@ oden::oden_present_graphics(
 			auto size = c.set_vertex.size;
 			auto data = c.set_vertex.data;
 			if (buffer == nullptr) {
-				LOG_INFO("create_buffer name=%s\n", name.c_str());
+				LOG_INFO("create_buffer-vertex name=%s\n", name.c_str());
 				buffer = create_buffer(device, size);
-				LOG_INFO("create_buffer name=%s Done\n", name.c_str());
+				mbuffers[name] = buffer;
+				LOG_INFO("create_buffer-vertex name=%s Done\n", name.c_str());
 			}
 
 			//allocate buffer memreq and Bind
@@ -607,12 +605,11 @@ oden::oden_present_graphics(
 				memreqs.size &= ~(memreqs.alignment - 1);
 				mmemreqs[name] = memreqs;
 				VkDeviceMemory devmem = alloc_devmem(name, memreqs.size,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
 				LOG_INFO("vkBindBufferMemory name=%s Done\n", name.c_str());
 
-
-				//copy to memory
 				void *dest = nullptr;
 				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
 				if (dest) {
@@ -632,6 +629,45 @@ oden::oden_present_graphics(
 
 		//CMD_SET_INDEX
 		if (type == CMD_SET_INDEX) {
+			auto buffer = mbuffers[name];
+			auto size = c.set_index.size;
+			auto data = c.set_index.data;
+			if (buffer == nullptr) {
+				LOG_INFO("create_buffer-index name=%s\n", name.c_str());
+				buffer = create_buffer(device, size);
+				mbuffers[name] = buffer;
+				LOG_INFO("create_buffer-index name=%s Done\n", name.c_str());
+			}
+
+			//allocate buffer memreq and Bind
+			if (mmemreqs.count(name) == 0) {
+				VkMemoryRequirements memreqs = {};
+
+				vkGetBufferMemoryRequirements(device, buffer, &memreqs);
+				memreqs.size  = memreqs.size + (memreqs.alignment - 1);
+				memreqs.size &= ~(memreqs.alignment - 1);
+				mmemreqs[name] = memreqs;
+				VkDeviceMemory devmem = alloc_devmem(name, memreqs.size,
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vkBindBufferMemory(device, buffer, devmem, 0);
+				LOG_INFO("vkBindBufferMemory index name=%s Done\n", name.c_str());
+
+				void *dest = nullptr;
+				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
+				if (dest) {
+					LOG_INFO("vkMapMemory index name=%s addr=0x%p\n", name.c_str(), dest);
+					memcpy(dest, data, size);
+					vkUnmapMemory(device, devmem);
+				} else {
+					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+					Sleep(1000);
+				}
+			}
+
+			VkDeviceSize offset = {};
+			vkCmdBindIndexBuffer(ref.cmdbuf, buffer, offset, VK_INDEX_TYPE_UINT32);
+			LOG_INFO("vkCmdBindIndexBuffers name=%s\n", name.c_str());
 		}
 
 		//CMD_SET_SHADER
@@ -640,10 +676,34 @@ oden::oden_present_graphics(
 
 		//CMD_CLEAR
 		if (type == CMD_CLEAR) {
+			auto name_color = name;
+			auto image_color = mimages[name_color];
+			if (image_color == nullptr)
+				LOG_ERR("NULL image_color name=%s\n", name.c_str());
+
+			VkClearColorValue clearColor = {
+				c.clear.color[0],
+				c.clear.color[1],
+				c.clear.color[2],
+				c.clear.color[3],
+			};
+			VkClearValue clearValue = {};
+			clearValue.color = clearColor;
+
+			VkImageSubresourceRange imageRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			};
+			LOG_INFO("vkCmdClearColorImage name=%s\n", name_color.c_str());
+			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &imageRange);
 		}
 
-		//CMD_CLEAR_
+		//CMD_CLEAR_DEPTH
 		if (type == CMD_CLEAR_DEPTH) {
+
 		}
 
 		//CMD_DRAW_INDEX
