@@ -435,10 +435,10 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 				ID3DBlob *pBlobGS = NULL;
 				ID3DBlob *pBlobPS = NULL;
 				ID3DBlob *pBlobCS = NULL;
-				CompileShaderFromFile(name, "VSMain", "vs_5_0", &pBlobVS);
-				CompileShaderFromFile(name, "GSMain", "gs_5_0", &pBlobGS);
-				CompileShaderFromFile(name, "PSMain", "ps_5_0", &pBlobPS);
-				CompileShaderFromFile(name, "CSMain", "cs_5_0", &pBlobCS);
+				CompileShaderFromFile(std::string(name + ".hlsl").c_str(), "VSMain", "vs_5_0", &pBlobVS);
+				CompileShaderFromFile(std::string(name + ".hlsl").c_str(), "GSMain", "gs_5_0", &pBlobGS);
+				CompileShaderFromFile(std::string(name + ".hlsl").c_str(), "PSMain", "ps_5_0", &pBlobPS);
+				CompileShaderFromFile(std::string(name + ".hlsl").c_str(), "CSMain", "cs_5_0", &pBlobCS);
 
 				if (pBlobVS)
 					dev->CreateVertexShader(

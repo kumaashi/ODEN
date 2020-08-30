@@ -33,15 +33,17 @@ void CSMain(
 {
 	uint2 idx = (dispatchThreadId.xy * 2);
 	float4 c = float4(0, 0, 0, 0);
+	c += tex0[idx + uint2( 0,  0)];
+	/*
 	c += tex0[idx + uint2(-1, -1)];
 	c += tex0[idx + uint2(-1,  0)];
 	c += tex0[idx + uint2(-1,  1)];
 	c += tex0[idx + uint2( 0, -1)];
-	c += tex0[idx + uint2( 0,  0)];
 	c += tex0[idx + uint2( 0,  1)];
 	c += tex0[idx + uint2( 1, -1)];
 	c += tex0[idx + uint2( 1,  0)];
 	c += tex0[idx + uint2( 1,  1)];
 	c /= 9;
+	*/
 	tex1[dispatchThreadId.xy] = c;
 }

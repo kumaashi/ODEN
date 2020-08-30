@@ -624,7 +624,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		if (type == CMD_SET_INDEX) {
 			auto res = mres[name];
 			if (res == nullptr && c.set_index.data) {
-				res = create_resource(name, dev, c.set_vertex.size, 1,
+				res = create_resource(name, dev, c.set_index.size, 1,
 						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_index.data, c.set_index.size);
 				if (!res) {
 					err_printf("create_resource(buffer index) name=%s\n", name.c_str());
@@ -686,9 +686,9 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				}
 				gpstate_desc.pRootSignature = rootsig;
 				gpstate_desc.NumRenderTargets = _countof(gpstate_desc.BlendState.RenderTarget);
-				gpstate_desc.VS = create_shader_from_file(name, "VSMain", "vs_5_0", vs);
-				gpstate_desc.GS = create_shader_from_file(name, "GSMain", "gs_5_0", gs);
-				gpstate_desc.PS = create_shader_from_file(name, "PSMain", "ps_5_0", ps);
+				gpstate_desc.VS = create_shader_from_file(std::string(name + ".hlsl"), "VSMain", "vs_5_0", vs);
+				gpstate_desc.GS = create_shader_from_file(std::string(name + ".hlsl"), "GSMain", "gs_5_0", gs);
+				gpstate_desc.PS = create_shader_from_file(std::string(name + ".hlsl"), "PSMain", "ps_5_0", ps);
 				gpstate_desc.SampleDesc.Count = 1;
 				gpstate_desc.SampleMask = UINT_MAX;
 				gpstate_desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -700,7 +700,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					fmt = fmt_color;
 
 				cpstate_desc.pRootSignature = rootsig;
-				cpstate_desc.CS = create_shader_from_file(name, "CSMain", "cs_5_0", cs);
+				cpstate_desc.CS = create_shader_from_file(std::string(name + ".hlsl"), "CSMain", "cs_5_0", cs);
 
 				if (!vs.empty() && !ps.empty()) {
 					auto status = dev->CreateGraphicsPipelineState(&gpstate_desc, IID_PPV_ARGS(&pstate));

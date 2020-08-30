@@ -60,7 +60,7 @@ void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name)
 }
 
 void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
-	int w, int h)
+	int w, int h, bool is_backbuffer)
 {
 	SetBarrierToRenderTarget(vcmd, name);
 
@@ -72,6 +72,7 @@ void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	c.set_render_target.rect.y = 0;
 	c.set_render_target.rect.w = w;
 	c.set_render_target.rect.h = h;
+	c.set_render_target.is_backbuffer = is_backbuffer;
 	vcmd.push_back(c);
 }
 

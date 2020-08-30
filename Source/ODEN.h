@@ -68,6 +68,7 @@ struct cmd {
 		struct set_render_target_t {
 			int fmt;
 			rect_t rect;
+			bool is_backbuffer;
 		} set_render_target;
 
 		struct set_depth_render_target_t {
