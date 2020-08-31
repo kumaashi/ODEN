@@ -45,9 +45,9 @@
 #define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
-	#define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
+#define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
 #else
-	#define LOG_MAIN(...)
+#define LOG_MAIN(...)
 #endif //ODEN_VK_DEBUG_MODE
 
 #define LOG_INFO(...) printf("INFO : " __FUNCTION__ ":" __VA_ARGS__)
@@ -109,7 +109,7 @@ compile_glsl2spirv(
 	basecmd += soption;
 	basecmd += " --D " + type + " " + shaderfile + std::string(" -o ") + tempfilename;
 	LOG_MAIN("basecmd : %s\n", basecmd.c_str());
-	
+
 	fork_process_wait((char *)basecmd.c_str());
 	{
 		FILE *fp = fopen(tempfilename.c_str(), "rb");
@@ -289,14 +289,14 @@ create_renderpass(
 	auto initialLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 	auto finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 	auto loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	if(is_presentable) {
+	if (is_presentable) {
 		initialLayoutColor = VK_IMAGE_LAYOUT_UNDEFINED;
 		finalLayoutColor = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		initialLayoutDepth = VK_IMAGE_LAYOUT_UNDEFINED;
 		finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 		loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	}
-	
+
 	//VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV
 
 	int attachment_index = 0;
@@ -498,7 +498,7 @@ create_descriptor_pool(
 	VkDescriptorPool ret = nullptr;
 	std::vector<VkDescriptorPoolSize> vpoolsizes;
 	VkDescriptorPoolCreateInfo info = {};
-	
+
 	heapcount = 0xFFFF;
 
 	vpoolsizes.push_back({VK_DESCRIPTOR_TYPE_SAMPLER, heapcount});
@@ -796,20 +796,6 @@ oden::oden_present_graphics(
 		std::vector<VkDeviceMemory> vscratch_devmems;
 	};
 
-	struct clear_info {
-		VkClearValue color;
-		VkClearValue depth;
-		void setup(float r, float g, float b, float a, float dval = 1.0f, uint32_t sval = 0)
-		{
-			color.color.float32[0] = r;
-			color.color.float32[1] = g;
-			color.color.float32[2] = b;
-			color.color.float32[3] = a;
-			depth.depthStencil.depth = dval;
-			depth.depthStencil.stencil = sval;
-		}
-	};
-
 	static VkInstance inst = VK_NULL_HANDLE;
 	static VkPhysicalDevice gpudev = VK_NULL_HANDLE;
 	static VkDevice device = VK_NULL_HANDLE;
@@ -852,7 +838,7 @@ oden::oden_present_graphics(
 	};
 
 	auto alloc_devmem = [&](auto name, VkDeviceSize size, VkMemoryPropertyFlags flags, bool is_entry = true) {
-		for(auto & x : mdevmem)
+		for (auto & x : mdevmem)
 			LOG_MAIN("DEBUG alloc_devmem : addr=%p, name=%s\n", x.second, x.first.c_str());
 
 		VkDeviceMemory devmem = mdevmem[name];
@@ -928,7 +914,7 @@ oden::oden_present_graphics(
 		vinstance_ext_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		static const char *debuglayers[] = {
 			//"VK_LAYER_LUNARG_standard_validation",
-			
+
 			//Todo avoid validation.
 			"VK_LAYER_KHRONOS_validation",
 		};
@@ -1373,7 +1359,7 @@ oden::oden_present_graphics(
 				VkDeviceMemory devmem = alloc_devmem(
 						name_depth, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				vkBindImageMemory(device, image_depth, devmem, 0);
-				
+
 				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
@@ -1609,8 +1595,8 @@ oden::oden_present_graphics(
 				memreqs.size &= ~(memreqs.alignment - 1);
 				mmemreqs[name] = memreqs;
 				devmem = alloc_devmem(name, memreqs.size,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
 				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
 			}
