@@ -22,15 +22,6 @@
  */
 #version 450 core
 
-#ifdef _VS_
-layout(location=0) in vec3 position;
-layout(location=1) in vec3 normal;
-layout(location=2) in vec2 uv;
-
-layout(location=0) out vec4 v_pos;
-layout(location=1) out vec3 v_nor;
-layout(location=2) out vec2 v_uv;
-
 layout(binding=0) uniform sampler2D tex0;
 layout(binding=1) uniform buf {
 	vec4 time;
@@ -40,14 +31,23 @@ layout(binding=1) uniform buf {
 	mat4 view;
 } ubuf;
 
+#ifdef _VS_
+layout(location=0) in vec4 position;
+layout(location=1) in vec3 normal;
+layout(location=2) in vec2 uv;
+
+layout(location=0) out vec4 v_pos;
+layout(location=1) out vec3 v_nor;
+layout(location=2) out vec2 v_uv;
+
 void main()
 {
-	v_pos = vec4(position, 1.0);
+	mat4 wvp  = ubuf.proj * ubuf.view * ubuf.world;
+	v_pos = vec4(position.xyz, 1.0);
 	v_nor = normal;
 	v_uv = uv;
-	v_pos = ubuf.world * v_pos;
-	v_pos = ubuf.view * v_pos;
-	v_pos = ubuf.proj * v_pos;
+	v_pos = wvp * vec4(v_pos.xyz, 1.0);
+	gl_Position = v_pos;
 }
 #endif //_VS_
 
@@ -55,9 +55,7 @@ void main()
 layout(location=0) in vec4 v_pos;
 layout(location=1) in vec3 v_nor;
 layout(location=2) in vec2 v_uv;
-
 layout(location=0) out vec4 out_color;
-layout(binding=0) uniform sampler2D tex0;
 
 void main()
 {

@@ -23,22 +23,27 @@
 
 #version 450 core
 
+
+layout(binding=0) uniform sampler2D tex0;
+layout(binding=1) uniform buf {
+	vec4 direction;
+} ubuf;
+
 #ifdef _VS_
-layout(location=0) in  vec3 position;
-layout(location=1) in  vec3 normal;
-layout(location=2) in  vec2 uv;
+layout(location=0) in vec4 position;
+layout(location=1) in vec3 normal;
+layout(location=2) in vec2 uv;
 
 layout(location=0) out vec4 v_pos;
 layout(location=1) out vec3 v_nor;
 layout(location=2) out vec2 v_uv;
 
-layout(binding = 1) uniform sampler2D tex0;
-
 void main()
 {
-	v_pos = vec4(position, 1.0);
+	v_pos = position;
 	v_nor = vec3(0, 0, 1);
 	v_uv = uv;
+	gl_Position = v_pos;
 }
 #endif //_VS_
 
@@ -49,10 +54,6 @@ layout(location=0) in vec4 v_pos;
 layout(location=1) in vec3 v_nor;
 layout(location=2) in vec2 v_uv;
 
-layout(binding=0) uniform buf {
-	vec4 direction;
-} ubuf;
-layout(binding=1) uniform sampler2D tex0;
 layout(location=0) out vec4 out_color;
 
 //https://github.com/Jam3/glsl-fast-gaussian-blur/
@@ -88,6 +89,6 @@ void main() {
 		col += blur13(uv, rtsize, dir, level);
 		col *= 0.5;
 	}
-	//out_color = col;
+	out_color = col;
 }
 #endif //_PS_
