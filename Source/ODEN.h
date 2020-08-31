@@ -62,6 +62,7 @@ struct cmd {
 		struct set_barrier_t {
 			bool to_present;
 			bool to_rendertarget;
+			bool to_depthrendertarget;
 			bool to_texture;
 		} set_barrier;
 
