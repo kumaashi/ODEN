@@ -241,9 +241,8 @@ int main()
 		DrawIndex(vcmd, "clear_draw", 0, _countof(idx_rect));
 
 		//Draw Cube to offscreenbuffer.
-		SetRenderTarget(vcmd, offscreen_name, Width, Height);
-		SetShader(vcmd, "./shaders/model", is_update, false, true);
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
+		SetShader(vcmd, "./shaders/model", is_update, false, true);
 		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
 		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
@@ -254,6 +253,8 @@ int main()
 		//Create Bloom X
 		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
 		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
+		ClearRenderTarget(vcmd, bloomscreen_nameX, clear_color);
+		ClearDepthRenderTarget(vcmd, bloomscreen_nameX, 1.0f);
 		SetTexture(vcmd, offscreen_name, 0);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
@@ -268,6 +269,8 @@ int main()
 		//Create Bloom Y
 		SetRenderTarget(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
 		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
+		ClearRenderTarget(vcmd, bloomscreen_name, clear_color);
+		ClearDepthRenderTarget(vcmd, bloomscreen_name, 1.0f);
 		SetTexture(vcmd, bloomscreen_nameX, 0);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));

@@ -52,7 +52,8 @@ struct MatrixStack {
 
 	void GetTop(float *a)
 	{
-		XMStoreFloat4x4((DirectX::XMFLOAT4X4 *) a, XMMatrixTranspose(GetTop()));
+		//XMStoreFloat4x4((DirectX::XMFLOAT4X4 *) a, XMMatrixTranspose(GetTop()));
+		XMStoreFloat4x4((DirectX::XMFLOAT4X4 *) a, (GetTop()));
 	}
 
 	void Reset()

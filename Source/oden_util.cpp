@@ -28,33 +28,36 @@ namespace odenutil
 
 void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_BARRIER;
 	c.name = name;
 	c.set_barrier.to_present = true;
-	c.set_barrier.to_rendertarget = false;
-	c.set_barrier.to_texture = false;
 	vcmd.push_back(c);
 }
 
 void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_BARRIER;
 	c.name = name;
-	c.set_barrier.to_present = false;
 	c.set_barrier.to_rendertarget = true;
-	c.set_barrier.to_texture = false;
+	vcmd.push_back(c);
+}
+
+void SetBarrierToDepthRenderTarget(std::vector<cmd> & vcmd, std::string name)
+{
+	cmd c = {};
+	c.type = CMD_SET_BARRIER;
+	c.name = name;
+	c.set_barrier.to_depthrendertarget = true;
 	vcmd.push_back(c);
 }
 
 void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_BARRIER;
 	c.name = name;
-	c.set_barrier.to_present = false;
-	c.set_barrier.to_rendertarget = false;
 	c.set_barrier.to_texture = true;
 	vcmd.push_back(c);
 }
@@ -62,9 +65,7 @@ void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name)
 void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	int w, int h, bool is_backbuffer)
 {
-	SetBarrierToRenderTarget(vcmd, name);
-
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_RENDER_TARGET;
 	c.name = name;
 	c.set_render_target.fmt = 0;
@@ -74,6 +75,8 @@ void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	c.set_render_target.rect.h = h;
 	c.set_render_target.is_backbuffer = is_backbuffer;
 	vcmd.push_back(c);
+
+	SetBarrierToRenderTarget(vcmd, name);
 }
 
 void
@@ -83,7 +86,7 @@ SetTexture(
 {
 	SetBarrierToTexture(vcmd, name);
 
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_TEXTURE;
 	c.name = name;
 	c.set_texture.fmt = 0;
@@ -106,7 +109,7 @@ SetTextureUav(
 {
 	SetBarrierToTexture(vcmd, name);
 
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_TEXTURE_UAV;
 	c.name = name;
 	c.set_texture.fmt = 0;
@@ -125,7 +128,7 @@ SetTextureUav(
 void SetVertex(std::vector<cmd> & vcmd, std::string name,
 	void *data, size_t size, size_t stride_size)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_VERTEX;
 	c.name = name;
 	c.set_vertex.data = data;
@@ -137,7 +140,7 @@ void SetVertex(std::vector<cmd> & vcmd, std::string name,
 void SetIndex(std::vector<cmd> & vcmd, std::string name,
 	void *data, size_t size)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_INDEX;
 	c.name = name;
 	c.set_index.data = data;
@@ -148,7 +151,7 @@ void SetIndex(std::vector<cmd> & vcmd, std::string name,
 void SetConstant(std::vector<cmd> & vcmd, std::string name,
 	int slot, void *data, size_t size)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_CONSTANT;
 	c.name = name;
 	c.set_constant.slot = slot;
@@ -161,7 +164,7 @@ void SetShader(
 	std::vector<cmd> & vcmd, std::string name,
 	bool is_update, bool is_cull, bool is_enable_depth)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_SET_SHADER;
 	c.name = name;
 	c.set_shader.is_update = is_update;
@@ -173,7 +176,7 @@ void SetShader(
 void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	float col[4])
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_CLEAR;
 	c.name = name;
 	for (int i = 0 ; i < 4; i++)
@@ -184,7 +187,7 @@ void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name,
 void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	float value)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_CLEAR_DEPTH;
 	c.name = name;
 	c.clear_depth.value = value;
@@ -194,7 +197,7 @@ void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name,
 void DrawIndex(std::vector<cmd> & vcmd, std::string name,
 	int start, int count)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_DRAW_INDEX;
 	c.name = name;
 	c.draw_index.start = start;
@@ -205,7 +208,7 @@ void DrawIndex(std::vector<cmd> & vcmd, std::string name,
 void Draw(std::vector<cmd> & vcmd, std::string name,
 	int vertex_count)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_DRAW;
 	c.name = name;
 	c.draw.vertex_count = vertex_count;
@@ -215,7 +218,7 @@ void Draw(std::vector<cmd> & vcmd, std::string name,
 void Dispatch(std::vector<cmd> & vcmd, std::string name,
 	int x, int y, int z)
 {
-	cmd c;
+	cmd c = {};
 	c.type = CMD_DISPATCH;
 	c.name = name;
 	c.dispatch.x = x;

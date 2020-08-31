@@ -50,9 +50,9 @@ PSInput VSMain(
 	result.position = position;
 	result.normal = normal;
 	result.uv = uv;
-	result.position = mul(result.position, world);
-	result.position = mul(result.position, view);
-	result.position = mul(result.position, proj);
+	result.position = mul(result.position, transpose(world));
+	result.position = mul(result.position, transpose(view ));
+	result.position = mul(result.position, transpose(proj ));
 	return result;
 }
 
@@ -60,5 +60,5 @@ float4 PSMain(PSInput input) : SV_TARGET {
 	float4 col = tex0.SampleLevel(LinearSampler, input.uv, 0) +
 	float4(0.1, 0.2, 0.3, 1.0);
 	col.w = input.position.z / input.position.w;
-	return col;
+	return col;//float4(1.0);
 }
