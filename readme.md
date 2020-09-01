@@ -52,7 +52,9 @@ DirectX11
 DirectX12
 Vulkan(WIP)
 ```
-with the VS2017
+with the VS2017,
+
+also the VS2019.
 
 ## Usage
 
