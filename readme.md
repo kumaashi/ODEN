@@ -1,4 +1,4 @@
-# ODEN 🍢
+# 🍢🍢🍢🍢🍢 ODEN 🍢🍢🍢🍢🍢
 
 ## About
 
@@ -17,7 +17,7 @@ ODEN has tiny command sets(CMD). The command *example* is as follows:
 
 ```
 enum {
-	CMD_NOP,c
+	CMD_NOP,
 	CMD_SET_BARRIER,
 	CMD_SET_RENDER_TARGET,
 	CMD_SET_TEXTURE,
