@@ -57,10 +57,6 @@ layout(location=0) out vec4 out_color;
 
 void main()
 {
-	vec3 bgcol = vec3(0.2, 0.3, 0.5);
-	float k = max(0.2, 1.0 - (v_uv.y * 0.5 + 0.5));
-	out_color = vec4(bgcol * k,1);
-	
 	vec2 uv = v_uv;
 	vec4 col = texture(tex0, uv, 0.0);
 	vec4 blurcol = texture(tex1, uv, 0.0);
