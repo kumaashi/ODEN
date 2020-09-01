@@ -822,7 +822,6 @@ oden::oden_present_graphics(
 	static std::map<std::string, uint64_t> mdescriptor_set_offset;
 	static std::map<std::string, VkPipeline> mpipelines;
 	static std::map<std::string, VkPipelineBindPoint> mpipeline_bindpoints;
-	static std::map<std::string, clear_info> mclear_infos;
 
 	static uint32_t backbuffer_index = 0;
 	static uint64_t frame_count = 0;
