@@ -140,9 +140,15 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	uint32_t buffernum, uint32_t heapcount, uint32_t slotmax);
 
 inline std::string
+oden_get_backbuffer_basename(void)
+{
+	return std::string("__backbuffer__");
+}
+
+inline std::string
 oden_get_backbuffer_name(int index)
 {
-	return std::string("__backbuffer__") + std::to_string(index);
+	return oden_get_backbuffer_basename() + std::to_string(index);
 }
 
 inline std::string
