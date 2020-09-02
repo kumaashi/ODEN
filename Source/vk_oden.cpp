@@ -827,6 +827,16 @@ oden::oden_present_graphics(
 	static std::vector<DeviceBuffer> devicebuffer;
 	static std::vector<VkDescriptorSet> vdescriptor_sets;
 
+	struct selected_handle {
+		std::string renderpass_name;
+		VkRenderPassBeginInfo info;
+		VkRenderPass renderpass;
+		VkRenderPass renderpass_commited;
+
+		VkDescriptorSet descriptor_sets;
+	};
+	selected_handle rec = {};
+
 	auto alloc_descriptor_sets = [&]() {
 		static uint64_t index = 0;
 		auto ret = vdescriptor_sets[index++ % vdescriptor_sets.size()];
@@ -1060,7 +1070,7 @@ oden::oden_present_graphics(
 			temp.resize(count);
 			vkGetSwapchainImagesKHR(device, swapchain, &count, temp.data());
 			for (auto & x : temp)
-				LOG_MAIN("temp = %p\n", x);
+				LOG_MAIN("vkGetSwapchainImagesKHR temp = %p\n", x);
 
 			for (int i = 0 ; i < temp.size(); i++) {
 				auto name_color = oden_get_backbuffer_name(i);
@@ -1184,16 +1194,6 @@ oden::oden_present_graphics(
 
 	LOG_MAIN("vcmd.size=%lu\n", vcmd.size());
 
-	struct selected_handle {
-		std::string renderpass_name;
-		VkRenderPassBeginInfo info;
-		VkRenderPass renderpass;
-		VkRenderPass renderpass_commited;
-
-		VkDescriptorSet descriptor_sets;
-	};
-	selected_handle rec = {};
-
 	auto scratch_descriptor_sets = [&]() {
 		rec.descriptor_sets = alloc_descriptor_sets();
 	};
@@ -1204,7 +1204,6 @@ oden::oden_present_graphics(
 		rec.renderpass = renderpass;
 		rec.renderpass_name = name;
 	};
-
 
 	auto begin_renderpass = [&]() {
 		if (rec.renderpass) {
@@ -1264,7 +1263,6 @@ oden::oden_present_graphics(
 				}
 			}
 			LOG_MAIN("DONE BARRIER name=%s\n", name.c_str());
-
 		}
 
 		//CMD_SET_RENDER_TARGET
@@ -1797,6 +1795,7 @@ oden::oden_present_graphics(
 			image_range_color.levelCount = 1;
 			image_range_color.baseArrayLayer = 0;
 			image_range_color.layerCount = 1;
+
 			VkClearColorValue clearColor = {};
 			clearColor.float32[0] = c.clear.color[0];
 			clearColor.float32[1] = c.clear.color[1];
@@ -1829,22 +1828,22 @@ oden::oden_present_graphics(
 
 		//CMD_DRAW_INDEX
 		if (type == CMD_DRAW_INDEX) {
-			vkCmdBindDescriptorSets(
-				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
-				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
 			if (!rec.renderpass_commited)
 				begin_renderpass();
+			vkCmdBindDescriptorSets(
+				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
+				1, (const VkDescriptorSet*)&rec.descriptor_sets, 0, NULL);
 			vkCmdDrawIndexed(ref.cmdbuf, c.draw_index.count, 1, 0, 0, 0);
 			scratch_descriptor_sets();
 		}
 
 		//CMD_DRAW
 		if (type == CMD_DRAW) {
+			if (!rec.renderpass_commited)
+				begin_renderpass();
 			vkCmdBindDescriptorSets(
 				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
 				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
-			if (!rec.renderpass_commited)
-				begin_renderpass();
 			vkCmdDraw(ref.cmdbuf, c.draw.vertex_count, 1, 0, 0);
 			scratch_descriptor_sets();
 		}
@@ -1854,10 +1853,7 @@ oden::oden_present_graphics(
 			vkCmdBindDescriptorSets(
 				ref.cmdbuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0,
 				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
-			vkCmdDispatch(ref.cmdbuf,
-				c.dispatch.x,
-				c.dispatch.y,
-				c.dispatch.z);
+			vkCmdDispatch(ref.cmdbuf, c.dispatch.x, c.dispatch.y, c.dispatch.z);
 			scratch_descriptor_sets();
 		}
 	}
