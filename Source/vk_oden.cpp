@@ -42,7 +42,7 @@
 
 #pragma comment(lib, "vulkan-1.lib")
 
-//#define ODEN_VK_DEBUG_MODE
+#define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
@@ -1196,6 +1196,7 @@ oden::oden_present_graphics(
 
 	auto scratch_descriptor_sets = [&]() {
 		rec.descriptor_sets = alloc_descriptor_sets();
+		return rec.descriptor_sets;
 	};
 
 	auto setup_renderpass = [&](auto name, auto info, auto renderpass) {
@@ -1236,15 +1237,18 @@ oden::oden_present_graphics(
 		auto descriptor_sets = rec.descriptor_sets;
 
 		if (type == CMD_SET_BARRIER) {
+			LOG_MAIN("SET BARRIER name=%s\n", name.c_str());
+			auto name_color = name;
+			auto name_depth = oden_get_depth_render_target_name(name);
+			auto image_color = mimages[name_color];
+			auto image_depth = mimages[name_depth];
+
+			//prepare for context roll.
 			if (rec.renderpass_commited)
 				end_renderpass();
 
-			LOG_MAIN("SET BARRIER name=%s\n", name.c_str());
-			auto name_color = name;
-			auto image_color = mimages[name_color];
-			auto image_depth = mimages[name_color];
+			VkImageMemoryBarrier barrier = {};
 			if (image_color) {
-				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 				if (c.set_barrier.to_present) {
 					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
@@ -1257,23 +1261,20 @@ oden::oden_present_graphics(
 					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 				}
+				LOG_MAIN("DONE BARRIER name=%s\n", name.c_str());
+			}
+
+			if (image_depth) {
 				if (c.set_barrier.to_depthrendertarget) {
-					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+					barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 				}
+				LOG_MAIN("DONE BARRIER name=%s\n", name.c_str());
 			}
-			LOG_MAIN("DONE BARRIER name=%s\n", name.c_str());
 		}
 
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
-			if (rec.renderpass_commited) {
-				end_renderpass();
-				scratch_descriptor_sets();
-				descriptor_sets = rec.descriptor_sets;
-			}
-
-			//todo mrt
 			auto x = c.set_render_target.rect.x;
 			auto y = c.set_render_target.rect.y;
 			auto w = c.set_render_target.rect.w;
@@ -1285,6 +1286,13 @@ oden::oden_present_graphics(
 			auto image_color = mimages[name_color];
 			auto fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
 			int maxmips = oden_get_mipmap_max(w, h);
+			
+			//prepare for context roll.
+			if (rec.renderpass_commited) {
+				end_renderpass();
+				descriptor_sets = scratch_descriptor_sets();
+			}
+
 			if (maxmips == 0)
 				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", w, h, name.c_str());
 			if (image_color == nullptr) {
@@ -1294,9 +1302,6 @@ oden::oden_present_graphics(
 						VK_IMAGE_USAGE_STORAGE_BIT |
 						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips);
 				mimages[name_color] = image_color;
-
-
-
 				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
 			}
 
@@ -1439,18 +1444,18 @@ oden::oden_present_graphics(
 
 		//CMD_SET_TEXTURE
 		if (type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
-			if (rec.renderpass_commited)
-				end_renderpass();
-
-			if (rec.descriptor_sets == nullptr) {
-				scratch_descriptor_sets();
-				descriptor_sets = rec.descriptor_sets;
-			}
-
 			uint32_t w = c.set_texture.rect.w;
 			uint32_t h = c.set_texture.rect.h;
 			auto slot = c.set_texture.slot;
 			LOG_MAIN("DEBUG : name=%s, c.set_texture.miplevel=%d\n", name.c_str(), c.set_texture.miplevel);
+
+			//prepare for context roll.
+			if (rec.renderpass_commited)
+				end_renderpass();
+
+			if (rec.descriptor_sets == nullptr)
+				descriptor_sets = scratch_descriptor_sets();
+
 
 			//COLOR
 			auto name_color = name;
@@ -1738,14 +1743,14 @@ oden::oden_present_graphics(
 
 		//CMD_SET_SHADER
 		if (type == CMD_SET_SHADER) {
-			if (rec.renderpass_commited) {
-				end_renderpass();
-				scratch_descriptor_sets();
-				descriptor_sets = rec.descriptor_sets;
-			}
-
 			auto binding_point = mpipeline_bindpoints[name];
 			auto pipeline = mpipelines[name];
+			
+			//prepare for context roll.
+			if (rec.renderpass_commited) {
+				end_renderpass();
+				descriptor_sets = scratch_descriptor_sets();
+			}
 
 			if (pipeline == nullptr) {
 				pipeline = create_gpipeline_from_file(device, name.c_str(), pipeline_layout, rec.renderpass);
@@ -1780,14 +1785,15 @@ oden::oden_present_graphics(
 
 		//CMD_CLEAR
 		if (type == CMD_CLEAR) {
-			if (rec.renderpass_commited)
-				end_renderpass();
-
 			auto name_color = name;
 			auto image_color = mimages[name_color];
 			if (image_color == nullptr)
 				LOG_ERR("NULL image_color name=%s\n", name_color.c_str());
 			LOG_MAIN("vkCmdClearColorImage name=%s\n", name_color.c_str());
+
+			//prepare for context roll.
+			if (rec.renderpass_commited)
+				end_renderpass();
 
 			VkImageSubresourceRange image_range_color = {};
 			image_range_color.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1806,13 +1812,14 @@ oden::oden_present_graphics(
 
 		//CMD_CLEAR_DEPTH
 		if (type == CMD_CLEAR_DEPTH) {
-			if (rec.renderpass_commited)
-				end_renderpass();
-
 			auto name_depth = oden_get_depth_render_target_name(name);
 			auto image_depth = mimages[name_depth];
 			if (image_depth == nullptr)
 				LOG_ERR("NULL image_depth name=%s\n", name_depth.c_str());
+
+			//prepare for context roll.
+			if (rec.renderpass_commited)
+				end_renderpass();
 
 			//Depth
 			LOG_MAIN("vkCmdClearDepthStencilImage name=%s\n", name_depth.c_str());
@@ -1834,7 +1841,6 @@ oden::oden_present_graphics(
 				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
 				1, (const VkDescriptorSet*)&rec.descriptor_sets, 0, NULL);
 			vkCmdDrawIndexed(ref.cmdbuf, c.draw_index.count, 1, 0, 0, 0);
-			scratch_descriptor_sets();
 		}
 
 		//CMD_DRAW
@@ -1845,7 +1851,6 @@ oden::oden_present_graphics(
 				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
 				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
 			vkCmdDraw(ref.cmdbuf, c.draw.vertex_count, 1, 0, 0);
-			scratch_descriptor_sets();
 		}
 
 		//CMD_DISPATCH
@@ -1854,6 +1859,8 @@ oden::oden_present_graphics(
 				ref.cmdbuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0,
 				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
 			vkCmdDispatch(ref.cmdbuf, c.dispatch.x, c.dispatch.y, c.dispatch.z);
+			
+			//discard dispatch desc set and increase.
 			scratch_descriptor_sets();
 		}
 	}
@@ -1863,6 +1870,7 @@ oden::oden_present_graphics(
 	//End Command Buffer
 	vkEndCommandBuffer(ref.cmdbuf);
 
+	//for debug.
 	{
 		for (auto & pair : mimages) {
 			LOG_MAIN("handle=0x%p : name=%s\n", pair.second, pair.first.c_str());
@@ -1903,9 +1911,10 @@ oden::oden_present_graphics(
 
 	vkQueuePresentKHR(graphics_queue, &present_info);
 
-	frame_count++;
 	backbuffer_index = frame_count % count;
 	LOG_MAIN("=======================================================================\n");
 	LOG_MAIN("FRAME Done frame_count=%d\n", frame_count);
 	LOG_MAIN("=======================================================================\n");
+
+	frame_count++;
 }
