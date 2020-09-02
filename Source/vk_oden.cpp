@@ -947,7 +947,7 @@ oden::oden_present_graphics(
 		//Enumaration GPU's
 		err = vkEnumeratePhysicalDevices(inst, &gpu_count, NULL);
 		LOG_MAIN("gpu_count=%d\n", gpu_count);
-		if (gpu_count != 1) {
+		if (gpu_count < 1) {
 			LOG_ERR("-------------------------------------------------------\n");
 			LOG_ERR(" Your Vulkan rendering system are belong to died.\n");
 			LOG_ERR("-------------------------------------------------------\n");
