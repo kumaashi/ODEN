@@ -764,7 +764,7 @@ create_gpipeline_from_file(
 	}
 
 	for (auto & module : vshadermodules)
-		if(module)
+		if (module)
 			vkDestroyShaderModule(device, module, nullptr);
 	return (ret);
 }
@@ -1165,14 +1165,14 @@ oden::oden_present_graphics(
 	//Destroy resources
 	if (hwnd == nullptr) {
 		vkDeviceWaitIdle(device);
-		for(auto & ref : devicebuffer)
+		for (auto & ref : devicebuffer)
 			vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
 		for (auto & x : mbuffers)
 			vkDestroyBuffer(device, x.second, NULL);
 		for (auto & x : mimageviews)
-		 	vkDestroyImageView(device, x.second, NULL);
+			vkDestroyImageView(device, x.second, NULL);
 		for (auto & x : mimages)
-                 	vkDestroyImage(device, x.second, NULL);
+			vkDestroyImage(device, x.second, NULL);
 		for (auto & x : mdevmem)
 			vkFreeMemory(device, x.second, NULL);
 		mbuffers.clear();

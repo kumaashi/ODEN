@@ -49,11 +49,11 @@
 #define err_printf(...) printf("ERR:" __FUNCTION__ ":" __VA_ARGS__)
 
 #ifdef ODEN_SUPPORT_DXR
-	#define ID3D12DeviceIF ID3D12Device5
-	#define ID3D12GraphicsCommandListIF ID3D12GraphicsCommandList4
+#define ID3D12DeviceIF ID3D12Device5
+#define ID3D12GraphicsCommandListIF ID3D12GraphicsCommandList4
 #else //ODEN_SUPPORT_DXR
-	#define ID3D12DeviceIF ID3D12Device
-	#define ID3D12GraphicsCommandListIF ID3D12GraphicsCommandList
+#define ID3D12DeviceIF ID3D12Device
+#define ID3D12GraphicsCommandListIF ID3D12GraphicsCommandList
 #endif //ODEN_SUPPORT_DXR
 
 using namespace oden;
@@ -482,7 +482,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					exit(1);
 				}
 				auto scratch = create_resource(name, dev, c.set_texture.size, 1,
-					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
+						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
 				if (!scratch) {
 					err_printf("create_resource(texture scratch) name=%s\n", name.c_str());
 					exit(1);
