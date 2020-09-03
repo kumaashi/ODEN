@@ -147,12 +147,8 @@ VKAPI_CALL debug_callback(
 		printf("INFO : ");
 	if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 		printf("DEBUG : ");
-
 	printf("%s", pMessage);
 	printf("\n");
-	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-		printf("\n");
-	}
 	return VK_FALSE;
 }
 
@@ -162,13 +158,14 @@ bind_debug_fn(
 	VkDebugReportCallbackCreateInfoEXT ext)
 {
 	VkDebugReportCallbackEXT callback;
-	PFN_vkCreateDebugReportCallbackEXT func = PFN_vkCreateDebugReportCallbackEXT(vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
+	PFN_vkCreateDebugReportCallbackEXT cb;
+	cb = PFN_vkCreateDebugReportCallbackEXT(
+		vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
-	if (func) {
-		func(instance, &ext, nullptr, &callback);
-	} else {
+	if (cb)
+		cb(instance, &ext, nullptr, &callback);
+	else
 		LOG_MAIN("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
-	}
 }
 
 static VkImage
@@ -178,8 +175,8 @@ create_image(
 	VkImageUsageFlags usageFlags, int maxmips)
 {
 	VkImage ret = VK_NULL_HANDLE;
-
 	VkImageCreateInfo info = {};
+
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	info.pNext = NULL;
 	info.flags = 0;
@@ -197,8 +194,8 @@ create_image(
 	info.queueFamilyIndexCount = 0;
 	info.pQueueFamilyIndices = NULL;
 	info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
 	vkCreateImage(device, &info, NULL, &ret);
+
 	return (ret);
 }
 
@@ -210,8 +207,8 @@ create_image_view(
 	VkImageAspectFlags aspectMask, int miplevel = 0)
 {
 	VkImageView ret = VK_NULL_HANDLE;
-
 	VkImageViewCreateInfo info = {};
+
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	info.pNext = NULL;
 	info.flags = 0;
@@ -222,14 +219,13 @@ create_image_view(
 	info.components.g = VK_COMPONENT_SWIZZLE_G;
 	info.components.b = VK_COMPONENT_SWIZZLE_B;
 	info.components.a = VK_COMPONENT_SWIZZLE_A;
-
 	info.subresourceRange.aspectMask = aspectMask;
 	info.subresourceRange.baseMipLevel = miplevel;
 	info.subresourceRange.levelCount = 1;
 	info.subresourceRange.baseArrayLayer = 0;
 	info.subresourceRange.layerCount = 1;
-
 	vkCreateImageView(device, &info, NULL, &ret);
+
 	return (ret);
 }
 
@@ -237,8 +233,8 @@ static VkBuffer
 create_buffer(VkDevice device, VkDeviceSize size)
 {
 	VkBuffer ret = VK_NULL_HANDLE;
-
 	VkBufferCreateInfo info = {};
+
 	info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	info.size  = size;
 	info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
@@ -247,6 +243,7 @@ create_buffer(VkDevice device, VkDeviceSize size)
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	vkCreateBuffer(device, &info, nullptr, &ret);
+
 	return (ret);
 }
 
@@ -271,6 +268,7 @@ get_barrier(VkImage image,
 	ret.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	ret.image = image;
 	ret.subresourceRange = { aspectMask, baseMipLevel, levelCount, baseArrayLayer, layerCount };
+
 	return (ret);
 }
 
@@ -289,6 +287,7 @@ create_renderpass(
 	auto initialLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 	auto finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 	auto loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	// todo VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV
 	if (is_presentable) {
 		initialLayoutColor = VK_IMAGE_LAYOUT_UNDEFINED;
 		finalLayoutColor = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -296,8 +295,6 @@ create_renderpass(
 		finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 		loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	}
-
-	//VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV
 
 	int attachment_index = 0;
 	std::vector<VkAttachmentDescription> vattachments;
@@ -426,6 +423,7 @@ create_fence(VkDevice device)
 	fence_ci.pNext = NULL;
 	fence_ci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 	auto err = vkCreateFence(device, &fence_ci, NULL, &ret);
+
 	return (ret);
 }
 
@@ -473,6 +471,7 @@ create_command_pool(
 	info.queueFamilyIndex = index_qfi;
 	VkCommandPool ret = nullptr;
 	auto err = vkCreateCommandPool(device, &info, NULL, &ret);
+
 	return (ret);
 }
 
@@ -480,7 +479,6 @@ static VkCommandBuffer
 create_command_buffer(
 	VkDevice device, VkCommandPool cmd_pool)
 {
-
 	VkCommandBufferAllocateInfo cballoc_info = {};
 
 	cballoc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -490,6 +488,7 @@ create_command_buffer(
 	cballoc_info.commandBufferCount = 1;
 	VkCommandBuffer ret = nullptr;
 	auto err = vkAllocateCommandBuffers(device, &cballoc_info, &ret);
+
 	return (ret);
 }
 
@@ -522,6 +521,7 @@ create_descriptor_pool(
 	info.poolSizeCount = (uint32_t)vpoolsizes.size();
 	info.pPoolSizes = vpoolsizes.data();
 	auto err = vkCreateDescriptorPool(device, &info, nullptr, &ret);
+
 	return (ret);
 }
 
@@ -534,9 +534,10 @@ create_descriptor_set_layout(
 	VkDescriptorSetLayoutCreateInfo info = {};
 
 	info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	info.bindingCount = (uint32_t)vdesc_setlayout_binding.size();
 	info.pBindings = vdesc_setlayout_binding.data();
+	info.bindingCount = (uint32_t)vdesc_setlayout_binding.size();
 	auto err = vkCreateDescriptorSetLayout(device, &info, nullptr, &ret);
+
 	return (ret);
 }
 
@@ -556,8 +557,9 @@ create_pipeline_layout(
 	return (ret);
 }
 
-VkShaderModule
-create_shader_module(VkDevice device, void *data, size_t size)
+static VkShaderModule
+create_shader_module(
+	VkDevice device, void *data, size_t size)
 {
 	VkShaderModule ret = nullptr;
 	VkShaderModuleCreateInfo info = {};
@@ -579,9 +581,9 @@ create_cpipeline_from_file(
 {
 	VkPipeline ret = nullptr;
 	VkComputePipelineCreateInfo info = {};
-	auto fname = std::string(filename);
-	std::vector<VkShaderModule> vshadermodules;
 	std::vector<uint8_t> cs;
+	std::vector<VkShaderModule> vshadermodules;
+	auto fname = std::string(filename);
 
 	compile_glsl2spirv((fname + ".glsl").c_str(), "_CS_", cs);
 	if (cs.empty())
@@ -606,6 +608,7 @@ create_cpipeline_from_file(
 	for (auto & modules : vshadermodules)
 		if (modules)
 			vkDestroyShaderModule(device, modules, nullptr);
+
 	return (ret);
 }
 
@@ -719,8 +722,8 @@ create_gpipeline_from_file(
 	}
 
 	//SETUP IA
-	std::vector<VkVertexInputAttributeDescription> vvertex_input_attr_descs;
 	uint32_t stride_size = 0;
+	std::vector<VkVertexInputAttributeDescription> vvertex_input_attr_descs;
 	vvertex_input_attr_descs.push_back({0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, stride_size});
 	stride_size += sizeof(float) * 4;
 	vvertex_input_attr_descs.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, stride_size});
@@ -767,6 +770,32 @@ create_gpipeline_from_file(
 		if (module)
 			vkDestroyShaderModule(device, module, nullptr);
 	return (ret);
+}
+
+static void
+update_descriptor_sets(
+	VkDevice device,
+	VkDescriptorSet descriptor_sets,
+	const void *pinfo,
+	uint32_t binding,
+	VkDescriptorType type)
+{
+	VkWriteDescriptorSet dw_sets = {};
+
+	dw_sets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	dw_sets.pNext = NULL;
+	dw_sets.descriptorType = type;
+	dw_sets.descriptorCount = 1;
+	dw_sets.dstSet = descriptor_sets;
+	dw_sets.dstBinding = binding;
+	dw_sets.dstArrayElement = 0;
+	if(type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+		dw_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
+	if(type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+		dw_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
+	if(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		dw_sets.pBufferInfo = (const VkDescriptorBufferInfo *)pinfo;
+	vkUpdateDescriptorSets(device, 1, &dw_sets, 0, NULL);
 }
 
 void
@@ -968,9 +997,9 @@ oden::oden_present_graphics(
 
 		//Enumeration Queue attributes.
 		vkGetPhysicalDeviceProperties(gpudev, &gpu_props);
-		LOG_MAIN("gpu_props.limits.minTexelBufferOffsetAlignment  =%p\n", (void *)gpu_props.limits.minTexelBufferOffsetAlignment);
-		LOG_MAIN("gpu_props.limits.minUniformBufferOffsetAlignment=%p\n", (void *)gpu_props.limits.minUniformBufferOffsetAlignment);
-		LOG_MAIN("gpu_props.limits.minStorageBufferOffsetAlignment=%p\n", (void *)gpu_props.limits.minStorageBufferOffsetAlignment);
+		LOG_INFO("minTexelBufferOffsetAlignment  =%p\n", (void *)gpu_props.limits.minTexelBufferOffsetAlignment);
+		LOG_INFO("minUniformBufferOffsetAlignment=%p\n", (void *)gpu_props.limits.minUniformBufferOffsetAlignment);
+		LOG_INFO("minStorageBufferOffsetAlignment=%p\n", (void *)gpu_props.limits.minStorageBufferOffsetAlignment);
 		vkGetPhysicalDeviceQueueFamilyProperties(gpudev, &queue_family_count, NULL);
 		LOG_MAIN("vkGetPhysicalDeviceQueueFamilyProperties : queue_family_count=%d\n", queue_family_count);
 		std::vector<VkQueueFamilyProperties> vqueue_props(queue_family_count);
@@ -1063,8 +1092,8 @@ oden::oden_present_graphics(
 
 		//Get BackBuffer Images
 		{
-			std::vector<VkImage> temp;
 			uint32_t count = 0;
+			std::vector<VkImage> temp;
 
 			vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr);
 			temp.resize(count);
@@ -1223,6 +1252,18 @@ oden::oden_present_graphics(
 			rec.renderpass_commited = nullptr;
 		}
 	};
+
+	//update shaders
+	static bool is_lazy_shader_update = false;
+	if (is_lazy_shader_update) {
+		//lazy
+		vkDeviceWaitIdle(device);
+		mpipeline_bindpoints.clear();
+		for(auto & x : mpipelines)
+			vkDestroyPipeline(device, x.second, nullptr);
+		mpipelines.clear();
+		is_lazy_shader_update = false;
+	}
 
 	//Proc command.
 	int cmd_index = 0;
@@ -1456,7 +1497,6 @@ oden::oden_present_graphics(
 			if (rec.descriptor_sets == nullptr)
 				descriptor_sets = scratch_descriptor_sets();
 
-
 			//COLOR
 			auto name_color = name;
 			auto fmt_color = VK_FORMAT_R8G8B8A8_UNORM;
@@ -1542,19 +1582,8 @@ oden::oden_present_graphics(
 					image_info.sampler = sampler_linear;
 					image_info.imageView = imageview_color;
 					image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-					VkWriteDescriptorSet descriptor_writes = {};
-					descriptor_writes.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					descriptor_writes.pNext = NULL;
-					descriptor_writes.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					descriptor_writes.descriptorCount = 1;
-					descriptor_writes.dstSet = descriptor_sets;
-					descriptor_writes.dstBinding = binding;
-					descriptor_writes.dstArrayElement = 0;
-					descriptor_writes.pImageInfo = &image_info;
 					LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s binding=%d\n", name.c_str(), binding);
-					vkUpdateDescriptorSets(device, 1, &descriptor_writes, 0, NULL);
-					LOG_MAIN("vkUpdateDescriptorSets(image) name=%s Done\n", name.c_str());
+					update_descriptor_sets(device, descriptor_sets, &image_info, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 				}
 
 				if (type == CMD_SET_TEXTURE_UAV) {
@@ -1566,21 +1595,9 @@ oden::oden_present_graphics(
 					image_info.sampler = sampler_linear;
 					image_info.imageView = imageview_color;
 					image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-					VkWriteDescriptorSet descriptor_writes = {};
-					descriptor_writes.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					descriptor_writes.pNext = NULL;
-					descriptor_writes.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-					descriptor_writes.descriptorCount = 1;
-					descriptor_writes.dstSet = descriptor_sets;
-					descriptor_writes.dstBinding = binding;
-					descriptor_writes.dstArrayElement = 0;
-					descriptor_writes.pImageInfo = &image_info;
+					update_descriptor_sets(device, descriptor_sets, &image_info, binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 					LOG_MAIN("vkUpdateDescriptorSets(compute image) imageview_color=%p, start name=%s binding=%d\n", imageview_color, name_color_mip.c_str(), binding);
-					vkUpdateDescriptorSets(device, 1, &descriptor_writes, 0, NULL);
-					LOG_MAIN("vkUpdateDescriptorSets(compute image) name=%s Done\n", name.c_str());
 				}
-
 			} else {
 				LOG_ERR("WARNING name=%s descriptor_sets is null\n", name.c_str());
 				LOG_ERR("You Need prepare binding DS name=%s\n", name.c_str());
@@ -1638,18 +1655,8 @@ oden::oden_present_graphics(
 				buffer_info.offset = 0;
 				buffer_info.range = size;
 
-				VkWriteDescriptorSet descriptor_writes = {};
-				descriptor_writes.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptor_writes.pNext = NULL;
-				descriptor_writes.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptor_writes.descriptorCount = 1;
-				descriptor_writes.dstSet = descriptor_sets;
-				descriptor_writes.dstBinding = binding;
-				descriptor_writes.dstArrayElement = 0;
-				descriptor_writes.pBufferInfo = &buffer_info;
+				update_descriptor_sets(device, descriptor_sets, &buffer_info, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 				LOG_MAIN("vkUpdateDescriptorSets start name=%s binding=%d\n", name.c_str(), binding);
-				vkUpdateDescriptorSets(device, 1, &descriptor_writes, 0, NULL);
-				LOG_MAIN("vkUpdateDescriptorSets name=%s Done\n", name.c_str());
 			} else {
 				LOG_ERR("You Need prepare binding DS name=%s\n", name.c_str());
 			}
@@ -1743,6 +1750,9 @@ oden::oden_present_graphics(
 
 		//CMD_SET_SHADER
 		if (type == CMD_SET_SHADER) {
+			if (c.set_shader.is_update)
+				is_lazy_shader_update = true;
+
 			auto binding_point = mpipeline_bindpoints[name];
 			auto pipeline = mpipelines[name];
 			
