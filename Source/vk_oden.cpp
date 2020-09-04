@@ -168,7 +168,7 @@ bind_debug_fn(
 		LOG_MAIN("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
 }
 
-static VkImage
+[[ nodiscard ]] static VkImage
 create_image(
 	VkDevice device,
 	uint32_t width, uint32_t height, VkFormat format,
@@ -199,7 +199,7 @@ create_image(
 	return (ret);
 }
 
-static VkImageView
+[[ nodiscard ]] static VkImageView
 create_image_view(
 	VkDevice device,
 	VkImage image,
@@ -229,7 +229,7 @@ create_image_view(
 	return (ret);
 }
 
-static VkBuffer
+[[ nodiscard ]] static VkBuffer
 create_buffer(VkDevice device, VkDeviceSize size)
 {
 	VkBuffer ret = VK_NULL_HANDLE;
@@ -247,7 +247,7 @@ create_buffer(VkDevice device, VkDeviceSize size)
 	return (ret);
 }
 
-static VkImageMemoryBarrier
+[[ nodiscard ]] static VkImageMemoryBarrier
 get_barrier(VkImage image,
 	VkImageAspectFlags aspectMask,
 	VkImageLayout old_image_layout,
@@ -272,7 +272,7 @@ get_barrier(VkImage image,
 	return (ret);
 }
 
-static VkRenderPass
+[[ nodiscard ]] static VkRenderPass
 create_renderpass(
 	VkDevice device,
 	uint32_t color_num,
@@ -368,7 +368,7 @@ create_renderpass(
 	return (ret);
 }
 
-static VkFramebuffer
+[[ nodiscard ]] static VkFramebuffer
 create_framebuffer(
 	VkDevice device,
 	VkRenderPass renderpass,
@@ -394,7 +394,7 @@ create_framebuffer(
 	return (fb);
 }
 
-static VkDescriptorSet
+[[ nodiscard ]] static VkDescriptorSet
 create_descriptor_set(
 	VkDevice device,
 	VkDescriptorPool descriptor_pool,
@@ -413,7 +413,7 @@ create_descriptor_set(
 	return (ret);
 }
 
-static VkFence
+[[ nodiscard ]] static VkFence
 create_fence(VkDevice device)
 {
 	VkFenceCreateInfo fence_ci = {};
@@ -427,7 +427,7 @@ create_fence(VkDevice device)
 	return (ret);
 }
 
-static VkSampler
+[[ nodiscard ]] static VkSampler
 create_sampler(VkDevice device, bool isfilterd)
 {
 	VkSampler ret = VK_NULL_HANDLE;
@@ -459,7 +459,7 @@ create_sampler(VkDevice device, bool isfilterd)
 	return (ret);
 }
 
-static VkCommandPool
+[[ nodiscard ]] static VkCommandPool
 create_command_pool(
 	VkDevice device, uint32_t index_qfi)
 {
@@ -475,7 +475,7 @@ create_command_pool(
 	return (ret);
 }
 
-static VkCommandBuffer
+[[ nodiscard ]] static VkCommandBuffer
 create_command_buffer(
 	VkDevice device, VkCommandPool cmd_pool)
 {
@@ -492,7 +492,7 @@ create_command_buffer(
 	return (ret);
 }
 
-static VkDescriptorPool
+[[ nodiscard ]] static VkDescriptorPool
 create_descriptor_pool(
 	VkDevice device, uint32_t heapcount)
 {
@@ -525,7 +525,7 @@ create_descriptor_pool(
 	return (ret);
 }
 
-static VkDescriptorSetLayout
+[[ nodiscard ]] static VkDescriptorSetLayout
 create_descriptor_set_layout(
 	VkDevice device,
 	std::vector<VkDescriptorSetLayoutBinding> & vdesc_setlayout_binding)
@@ -541,7 +541,7 @@ create_descriptor_set_layout(
 	return (ret);
 }
 
-static VkPipelineLayout
+[[ nodiscard ]] static VkPipelineLayout
 create_pipeline_layout(
 	VkDevice device,
 	VkDescriptorSetLayout descriptor_layout)
@@ -557,7 +557,7 @@ create_pipeline_layout(
 	return (ret);
 }
 
-static VkShaderModule
+[[ nodiscard ]] static VkShaderModule
 create_shader_module(
 	VkDevice device, void *data, size_t size)
 {
@@ -573,7 +573,7 @@ create_shader_module(
 }
 
 
-static VkPipeline
+[[ nodiscard ]] static VkPipeline
 create_cpipeline_from_file(
 	VkDevice device,
 	const char *filename,
@@ -612,7 +612,7 @@ create_cpipeline_from_file(
 	return (ret);
 }
 
-static VkPipeline
+[[ nodiscard ]] static VkPipeline
 create_gpipeline_from_file(
 	VkDevice device,
 	const char *filename,
