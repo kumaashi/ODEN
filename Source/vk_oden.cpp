@@ -1108,7 +1108,7 @@ oden::oden_present_graphics(
 				mmemreqs[name_color] = dummy;
 
 				//dummy
-				mdevmem[name_color] = alloc_devmem(name_color, 256, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				alloc_devmem(name_color, 256, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 			}
 		}
 
