@@ -232,13 +232,13 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 					D3D11_USAGE_DEFAULT, D3D11_BIND_DEPTH_STENCIL, 0,  0,
 				};
 				dev->CreateTexture2D(&desc, NULL, &tex_depth);
-				if (tex) {
-					mtex[name_depth] = tex;
+				if (tex_depth) {
+					mtex[name_depth] = tex_depth;
 				} else {
-					err_printf("ERROR CMD_SET_RENDER_TARGET name_depth=%s, tex=%p\n", name_depth.c_str(), tex);
+					err_printf("ERROR CMD_SET_RENDER_TARGET name_depth=%s, tex=%p\n", name_depth.c_str(), tex_depth);
 					exit(1);
 				}
-				info_printf("CreateTexture2D(dsv) name=%s, tex=%p\n", name_depth.c_str(), tex);
+				info_printf("CreateTexture2D(dsv) name=%s, tex_depth=%p\n", name_depth.c_str(), tex_depth);
 			}
 			auto rtv = mrtv[name];
 			if (rtv == nullptr) {
