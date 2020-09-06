@@ -42,7 +42,7 @@
 
 #pragma comment(lib, "vulkan-1.lib")
 
-#define ODEN_VK_DEBUG_MODE
+//#define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
