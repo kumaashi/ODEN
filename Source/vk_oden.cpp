@@ -47,7 +47,7 @@
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
 #else
-#define LOG_MAIN(...)
+#define LOG_MAIN(...) {}
 #endif //ODEN_VK_DEBUG_MODE
 
 #define LOG_INFO(...) printf("INFO : " __FUNCTION__ ":" __VA_ARGS__)
