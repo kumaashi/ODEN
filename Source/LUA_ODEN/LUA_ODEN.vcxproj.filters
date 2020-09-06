@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <FxCompile Include="..\shaders\clear.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\present.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\shaders\model.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\dx11_oden.cpp" />
+    <ClCompile Include="..\oden_util.cpp" />
+    <ClCompile Include="..\oden_lua.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\oden.h" />
+    <ClInclude Include="..\oden_util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{f71fed75-d041-4dcd-afa8-d1b4a0bbd7b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{912ac0f1-a5ee-44c5-a01f-0f62c48da8d0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\update.lua">
+      <Filter>scripts</Filter>
+    </None>
+  </ItemGroup>
+</Project>

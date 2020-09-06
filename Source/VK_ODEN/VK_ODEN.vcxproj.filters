@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\vk_oden.cpp" />
+    <ClCompile Include="..\oden_util.cpp" />
+    <ClCompile Include="..\sample_code.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\oden.h" />
+    <ClInclude Include="..\oden_util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{884ac10c-dc89-441a-bee4-b542f11cb43d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\shaders\model.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\bloom.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\clear.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\genmipmap.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\present.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\shaders\showdepth.glsl">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>
