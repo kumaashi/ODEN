@@ -182,6 +182,7 @@ int main()
 		auto index_name = std::to_string(buffer_index);
 		auto backbuffer_name = oden_get_backbuffer_name(buffer_index);
 		auto offscreen_name = "offscreen" + index_name;
+		auto offscreen_depth_name = oden_get_depth_render_target_name(offscreen_name);
 		auto constant_name = "constcommon" + index_name;
 		auto constmip_name = "constmip" + index_name;
 		auto constbloom_name = "constbloom" + index_name;
@@ -292,6 +293,15 @@ int main()
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));
+
+		//Draw Depth
+		SetRenderTarget(vcmd, backbuffer_name, Width, Height, true);
+		SetShader(vcmd, "./shaders/showdepth", is_update, false, false);
+		SetTexture(vcmd, offscreen_depth_name, 0);
+		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
+		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
+		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));
+		
 
 		//Present CMD to ODEN.
 		SetBarrierToPresent(vcmd, backbuffer_name);

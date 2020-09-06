@@ -228,8 +228,8 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 			auto tex_depth = mtex[name_depth];
 			if (tex_depth == nullptr) {
 				D3D11_TEXTURE2D_DESC desc = {
-					c.set_render_target.rect.w, c.set_render_target.rect.h, 1, 1, fmt_depth, {1, 0},
-					D3D11_USAGE_DEFAULT, D3D11_BIND_DEPTH_STENCIL, 0,  0,
+					c.set_render_target.rect.w, c.set_render_target.rect.h, 1, 1, DXGI_FORMAT_R32_TYPELESS, {1, 0},
+					D3D11_USAGE_DEFAULT, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE, 0,  0,
 				};
 				dev->CreateTexture2D(&desc, NULL, &tex_depth);
 				if (tex_depth) {
@@ -254,7 +254,10 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 
 			auto dsv = mdsv[name];
 			if (dsv == nullptr) {
-				dev->CreateDepthStencilView(tex_depth, nullptr, &dsv);
+				D3D11_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
+				dsv_desc.Format = DXGI_FORMAT_D32_FLOAT;
+				dsv_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+				dev->CreateDepthStencilView(tex_depth, &dsv_desc, &dsv);
 				info_printf("CreateDepthStencilView name(dsv)=%s, dsv=%p\n", name.c_str(), dsv);
 				if (dsv) {
 					mdsv[name] = dsv;
@@ -278,6 +281,7 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 			auto tex = mtex[name];
 			auto srv = msrv[name];
 			auto rtv = mrtv[name];
+			auto dsv = mdsv[name];
 			auto uav = muav[name];
 			if (tex == nullptr) {
 				fmt_color = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -304,14 +308,27 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 
 			if (type == CMD_SET_TEXTURE) {
 				if (srv == nullptr) {
-					D3D11_SHADER_RESOURCE_VIEW_DESC desc = { fmt_color, D3D11_SRV_DIMENSION_TEXTURE2D, {0, 0}, };
+					D3D11_SHADER_RESOURCE_VIEW_DESC desc = {
+						fmt_color,
+						D3D11_SRV_DIMENSION_TEXTURE2D,
+						{0, 0},
+					};
 					desc.Texture2D.MipLevels = 1;
 					if (rtv)
 						desc.Texture2D.MipLevels = texdesc.MipLevels - 1;
+					if (dsv)
+						desc.Texture2D.MipLevels = texdesc.MipLevels - 1;
 
-
-					info_printf("CMD_SET_TEXTURE name=%s, srv=%p, rtv=%p, miplevels=%d\n",
-						name.c_str(), srv, rtv, desc.Texture2D.MipLevels);
+					if(name.find("depth") != std::string::npos) {
+						desc.Format = fmt_depth;
+						if(desc.Format == DXGI_FORMAT_D32_FLOAT)
+							printf("!!!!! DXGI_FORMAT_D32_FLOAT\n");
+						if(desc.Format == DXGI_FORMAT_R32_FLOAT)
+							printf("!!!!! DXGI_FORMAT_R32_FLOAT\n");
+						desc.Format = DXGI_FORMAT_R32_FLOAT;
+					}
+					info_printf("CMD_SET_TEXTURE name=%s, tex=%p, srv=%p, rtv=%p, miplevels=%d\n",
+						name.c_str(), tex, srv, rtv, desc.Texture2D.MipLevels);
 					dev->CreateShaderResourceView(tex, &desc, &srv);
 					if (srv == nullptr) {
 						err_printf("ERROR CMD_SET_TEXTURE CreateShaderResourceView name=%s, tex=%p\n",

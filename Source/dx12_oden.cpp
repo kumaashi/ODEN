@@ -187,7 +187,14 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_rtv = { D3D12_DESCRIPTOR_HEAP_TYPE_RTV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_dsv = { D3D12_DESCRIPTOR_HEAP_TYPE_DSV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, 0 };
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_shader = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
-
+		ID3D12Debug* debugController;
+#ifdef DEBUG
+		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+		{
+			debugController->EnableDebugLayer();
+			debugController->Release();
+		}
+#endif //DEBUG
 		D3D12CreateDevice(NULL, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&dev));
 #ifdef ODEN_SUPPORT_DXR
 		{
@@ -458,6 +465,14 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				ref.cmdlist->ResourceBarrier(1, &barrier);
 			}
 			mbarrier.erase(name_color);
+			if (mbarrier.count(name_depth)) {
+				D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
+				barrier.Transition = mbarrier[name_depth];
+				barrier.Transition.pResource = mres[name_depth];
+				ref.cmdlist->ResourceBarrier(1, &barrier);
+			}
+			mbarrier.erase(name_depth);
+			
 
 			D3D12_VIEWPORT viewport = { FLOAT(x), FLOAT(y), FLOAT(w), FLOAT(h), 0.0f, 1.0f };
 			D3D12_RECT rect = { x, y, w, h };
@@ -475,6 +490,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			auto slot = c.set_texture.slot;
 
 			if (res == nullptr) {
+				info_printf("res=null : name=%s\n", name.c_str());
 				fmt_color = DXGI_FORMAT_R8G8B8A8_UNORM;
 				res = create_resource(name, dev, w, h, fmt_color, D3D12_RESOURCE_FLAG_NONE);
 				if (!res) {
@@ -514,11 +530,14 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				if (mgpu_handle.count(name) == 0) {
 					D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 					desc.Format = fmt_color;
+					if(name.find("depth") != std::string::npos)
+						desc.Format = DXGI_FORMAT_R32_FLOAT;
 					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 					desc.Texture2D.MipLevels = desc_res.MipLevels;
 					cpu_handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * handle_index_shader;
 					dev->CreateShaderResourceView(res, &desc, cpu_handle);
+					info_printf("CMD_SET_TEXTURE CreateShaderResourceView name=%s, fmt=%d\n", name.c_str(), desc.Format);
 					mgpu_handle[name] = handle_index_shader++;
 				}
 

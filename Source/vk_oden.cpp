@@ -954,14 +954,15 @@ oden::oden_present_graphics(
 		vkapp.apiVersion = VK_API_VERSION_1_0;
 
 		//DEBUG
-		vinstance_ext_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 		static const char *debuglayers[] = {
 			//"VK_LAYER_LUNARG_standard_validation",
 
 			//Todo avoid validation.
 			"VK_LAYER_KHRONOS_validation",
 		};
+		vinstance_ext_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
+		//create instance
 		inst_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		inst_info.pNext = NULL;
 		inst_info.pApplicationInfo = &vkapp;
@@ -1400,7 +1401,7 @@ oden::oden_present_graphics(
 			auto fmt_depth = VK_FORMAT_D32_SFLOAT;
 			if (image_depth == nullptr) {
 				image_depth = create_image(device, w, h, fmt_depth,
-						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1);
+						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1);
 				mimages[name_depth] = image_depth;
 
 				LOG_MAIN("create_image name_depth=%s, image_depth=0x%p\n", name_depth.c_str(), image_depth);
