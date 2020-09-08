@@ -189,8 +189,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		D3D12_DESCRIPTOR_HEAP_DESC dhdesc_shader = { D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, heapcount, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, 0 };
 		ID3D12Debug* debugController;
 #ifdef DEBUG
-		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-		{
+		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 			debugController->EnableDebugLayer();
 			debugController->Release();
 		}
@@ -472,7 +471,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				ref.cmdlist->ResourceBarrier(1, &barrier);
 			}
 			mbarrier.erase(name_depth);
-			
+
 
 			D3D12_VIEWPORT viewport = { FLOAT(x), FLOAT(y), FLOAT(w), FLOAT(h), 0.0f, 1.0f };
 			D3D12_RECT rect = { x, y, w, h };
@@ -500,7 +499,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					exit(1);
 				}
 				auto scratch = create_resource(name, dev, size, 1,
-					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
+						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
 				if (!scratch) {
 					err_printf("create_resource(texture scratch) name=%s\n", name.c_str());
 					exit(1);
@@ -532,7 +531,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				if (mgpu_handle.count(name) == 0) {
 					D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 					desc.Format = fmt_color;
-					if(name.find("depth") != std::string::npos)
+					if (name.find("depth") != std::string::npos)
 						desc.Format = DXGI_FORMAT_R32_FLOAT;
 					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

@@ -160,7 +160,7 @@ bind_debug_fn(
 	VkDebugReportCallbackEXT callback;
 	PFN_vkCreateDebugReportCallbackEXT cb;
 	cb = PFN_vkCreateDebugReportCallbackEXT(
-		vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
+			vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
 	if (cb)
 		cb(instance, &ext, nullptr, &callback);
@@ -789,11 +789,11 @@ update_descriptor_sets(
 	dw_sets.dstSet = descriptor_sets;
 	dw_sets.dstBinding = binding;
 	dw_sets.dstArrayElement = 0;
-	if(type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+	if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		dw_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
-	if(type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+	if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
 		dw_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
-	if(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+	if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		dw_sets.pBufferInfo = (const VkDescriptorBufferInfo *)pinfo;
 	vkUpdateDescriptorSets(device, 1, &dw_sets, 0, NULL);
 }
@@ -1260,7 +1260,7 @@ oden::oden_present_graphics(
 		//lazy
 		vkDeviceWaitIdle(device);
 		mpipeline_bindpoints.clear();
-		for(auto & x : mpipelines)
+		for (auto & x : mpipelines)
 			vkDestroyPipeline(device, x.second, nullptr);
 		mpipelines.clear();
 		is_lazy_shader_update = false;
@@ -1331,7 +1331,7 @@ oden::oden_present_graphics(
 			auto image_color = mimages[name_color];
 			auto fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
 			int maxmips = oden_get_mipmap_max(w, h);
-			
+
 			//prepare for context roll.
 			if (rec.renderpass_commited) {
 				end_renderpass();
@@ -1760,7 +1760,7 @@ oden::oden_present_graphics(
 
 			auto binding_point = mpipeline_bindpoints[name];
 			auto pipeline = mpipelines[name];
-			
+
 			//prepare for context roll.
 			if (rec.renderpass_commited) {
 				end_renderpass();
@@ -1874,7 +1874,7 @@ oden::oden_present_graphics(
 				ref.cmdbuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0,
 				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
 			vkCmdDispatch(ref.cmdbuf, c.dispatch.x, c.dispatch.y, c.dispatch.z);
-			
+
 			//discard dispatch desc set and increase.
 			scratch_descriptor_sets();
 		}

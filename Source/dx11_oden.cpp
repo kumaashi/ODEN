@@ -321,11 +321,11 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 					if (dsv)
 						desc.Texture2D.MipLevels = texdesc.MipLevels - 1;
 
-					if(name.find("depth") != std::string::npos) {
+					if (name.find("depth") != std::string::npos) {
 						desc.Format = fmt_depth;
-						if(desc.Format == DXGI_FORMAT_D32_FLOAT)
+						if (desc.Format == DXGI_FORMAT_D32_FLOAT)
 							printf("!!!!! DXGI_FORMAT_D32_FLOAT\n");
-						if(desc.Format == DXGI_FORMAT_R32_FLOAT)
+						if (desc.Format == DXGI_FORMAT_R32_FLOAT)
 							printf("!!!!! DXGI_FORMAT_R32_FLOAT\n");
 						desc.Format = DXGI_FORMAT_R32_FLOAT;
 					}
@@ -587,7 +587,7 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 					err_printf("ERROR CMD_SET_INDEX name=%s Can't map\n", name.c_str());
 				}
 			}
-			if(size)
+			if (size)
 				ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
 			else
 				ctx->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
