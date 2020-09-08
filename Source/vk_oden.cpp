@@ -1329,7 +1329,9 @@ oden::oden_present_graphics(
 			//COLOR
 			auto name_color = name;
 			auto image_color = mimages[name_color];
-			auto fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
+			auto fmt_color = VK_FORMAT_R16G16B16A16_SFLOAT;
+			if (is_backbuffer == true)
+				fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
 			int maxmips = oden_get_mipmap_max(w, h);
 
 			//prepare for context roll.
