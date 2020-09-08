@@ -55,6 +55,7 @@ enum {
 struct cmd {
 	int type;
 	std::string name;
+	std::vector<uint8_t> buf;
 	struct rect_t {
 		int x, y, w, h;
 	};
@@ -80,28 +81,20 @@ struct cmd {
 		struct set_texture_t {
 			int fmt;
 			int slot;
-			void *data;
-			size_t size;
 			size_t stride_size;
 			rect_t rect;
 			int miplevel;
 		} set_texture;
 
 		struct set_vertex_t {
-			void *data;
-			size_t size;
 			size_t stride_size;
 		} set_vertex;
 
 		struct set_index_t {
-			void *data;
-			size_t size;
 		} set_index;
 
 		struct set_constant_t {
 			int slot;
-			void *data;
-			size_t size;
 		} set_constant;
 
 		struct set_shader_t {

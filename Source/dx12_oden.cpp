@@ -490,6 +490,8 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			auto slot = c.set_texture.slot;
 
 			if (res == nullptr) {
+				auto data = c.buf.data();
+				auto size = c.buf.size();
 				info_printf("res=null : name=%s\n", name.c_str());
 				fmt_color = DXGI_FORMAT_R8G8B8A8_UNORM;
 				res = create_resource(name, dev, w, h, fmt_color, D3D12_RESOURCE_FLAG_NONE);
@@ -497,8 +499,8 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 					err_printf("create_resource(texture) name=%s\n", name.c_str());
 					exit(1);
 				}
-				auto scratch = create_resource(name, dev, c.set_texture.size, 1,
-						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_texture.data, c.set_texture.size);
+				auto scratch = create_resource(name, dev, size, 1,
+					DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
 				if (!scratch) {
 					err_printf("create_resource(texture scratch) name=%s\n", name.c_str());
 					exit(1);
@@ -588,9 +590,10 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			auto cpu_handle = heap_shader->GetCPUDescriptorHandleForHeapStart();
 			auto gpu_handle = heap_shader->GetGPUDescriptorHandleForHeapStart();
 			auto slot = c.set_constant.slot;
+			auto data = c.buf.data();
+			auto size = c.buf.size();
 			if (res == nullptr) {
-				res = create_resource(name, dev, c.set_constant.size, 1,
-						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_constant.data, c.set_constant.size);
+				res = create_resource(name, dev, size, 1, DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
 				if (!res) {
 					err_printf("create_resource(cbv) name=%s\n", name.c_str());
 					exit(1);
@@ -613,7 +616,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				UINT8 *dest = nullptr;
 				res->Map(0, NULL, reinterpret_cast<void **>(&dest));
 				if (dest) {
-					memcpy(dest, c.set_constant.data, c.set_constant.size);
+					memcpy(dest, data, size);
 					res->Unmap(0, NULL);
 				} else {
 					printf("%s : can't map\n", __FUNCTION__);
@@ -623,9 +626,10 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
+			auto data = c.buf.data();
+			auto size = c.buf.size();
 			if (res == nullptr) {
-				res = create_resource(name, dev, c.set_vertex.size, 1,
-						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_vertex.data, c.set_vertex.size);
+				res = create_resource(name, dev, size, 1, DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
 				if (!res) {
 					err_printf("create_resource(buffer vertex) name=%s\n", name.c_str());
 					exit(1);
@@ -633,7 +637,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				mres[name] = res;
 			}
 			D3D12_VERTEX_BUFFER_VIEW view = {
-				res->GetGPUVirtualAddress(), UINT(c.set_vertex.size), UINT(c.set_vertex.stride_size)
+				res->GetGPUVirtualAddress(), UINT(size), UINT(c.set_vertex.stride_size)
 			};
 			ref.cmdlist->IASetVertexBuffers(0, 1, &view);
 			ref.cmdlist->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -642,18 +646,19 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		//CMD_SET_INDEX
 		if (type == CMD_SET_INDEX) {
 			auto res = mres[name];
-			if (res == nullptr && c.set_index.data) {
-				res = create_resource(name, dev, c.set_index.size, 1,
-						DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, c.set_index.data, c.set_index.size);
+			auto data = c.buf.data();
+			auto size = c.buf.size();
+			if (res == nullptr) {
+				res = create_resource(name, dev, size, 1, DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
 				if (!res) {
 					err_printf("create_resource(buffer index) name=%s\n", name.c_str());
 					exit(1);
 				}
 				mres[name] = res;
 			}
-			if (c.set_index.data) {
+			if (size) {
 				D3D12_INDEX_BUFFER_VIEW view = {
-					res->GetGPUVirtualAddress(), UINT(c.set_index.size), DXGI_FORMAT_R32_UINT
+					res->GetGPUVirtualAddress(), UINT(size), DXGI_FORMAT_R32_UINT
 				};
 				ref.cmdlist->IASetIndexBuffer(&view);
 			} else {

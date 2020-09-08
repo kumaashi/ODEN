@@ -91,8 +91,8 @@ SetTexture(
 	c.name = name;
 	c.set_texture.fmt = 0;
 	c.set_texture.slot = slot;
-	c.set_texture.data = data;
-	c.set_texture.size = size;
+	c.buf.resize(size);
+	memcpy(c.buf.data(), data, size);
 	c.set_texture.stride_size = stride_size;
 	c.set_texture.rect.x = 0;
 	c.set_texture.rect.y = 0;
@@ -114,8 +114,8 @@ SetTextureUav(
 	c.name = name;
 	c.set_texture.fmt = 0;
 	c.set_texture.slot = slot;
-	c.set_texture.data = data;
-	c.set_texture.size = size;
+	c.buf.resize(size);
+	memcpy(c.buf.data(), data, size);
 	c.set_texture.stride_size = stride_size;
 	c.set_texture.rect.x = 0;
 	c.set_texture.rect.y = 0;
@@ -131,8 +131,8 @@ void SetVertex(std::vector<cmd> & vcmd, std::string name,
 	cmd c = {};
 	c.type = CMD_SET_VERTEX;
 	c.name = name;
-	c.set_vertex.data = data;
-	c.set_vertex.size = size;
+	c.buf.resize(size);
+	memcpy(c.buf.data(), data, size);
 	c.set_vertex.stride_size = stride_size;
 	vcmd.push_back(c);
 }
@@ -143,8 +143,8 @@ void SetIndex(std::vector<cmd> & vcmd, std::string name,
 	cmd c = {};
 	c.type = CMD_SET_INDEX;
 	c.name = name;
-	c.set_index.data = data;
-	c.set_index.size = size;
+	c.buf.resize(size);
+	memcpy(c.buf.data(), data, size);
 	vcmd.push_back(c);
 }
 
@@ -155,8 +155,8 @@ void SetConstant(std::vector<cmd> & vcmd, std::string name,
 	c.type = CMD_SET_CONSTANT;
 	c.name = name;
 	c.set_constant.slot = slot;
-	c.set_constant.data = data;
-	c.set_constant.size = size;
+	c.buf.resize(size);
+	memcpy(c.buf.data(), data, size);
 	vcmd.push_back(c);
 }
 

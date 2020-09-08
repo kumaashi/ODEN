@@ -1517,6 +1517,8 @@ oden::oden_present_graphics(
 
 			//allocate color memreq and Bind
 			if (mmemreqs.count(name_color) == 0) {
+				auto data = c.buf.data();
+				auto size = c.buf.size();
 				VkMemoryRequirements memreqs = {};
 
 				vkGetImageMemoryRequirements(device, image_color, &memreqs);
@@ -1530,7 +1532,7 @@ oden::oden_present_graphics(
 
 				{
 					LOG_MAIN("create_buffer-staging name=%s\n", name.c_str());
-					auto scratch_buffer = create_buffer(device, c.set_texture.size);
+					auto scratch_buffer = create_buffer(device, size);
 					ref.vscratch_buffers.push_back(scratch_buffer);
 
 					LOG_MAIN("create_buffer-staging name=%s Done\n", name.c_str());
@@ -1548,7 +1550,7 @@ oden::oden_present_graphics(
 					vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
 					if (dest) {
 						LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-						memcpy(dest, c.set_texture.data, c.set_texture.size);
+						memcpy(dest, data, size);
 						vkUnmapMemory(device, devmem);
 					} else {
 						LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
@@ -1611,9 +1613,8 @@ oden::oden_present_graphics(
 		//CMD_SET_CONSTANT
 		if (type == CMD_SET_CONSTANT) {
 			auto slot = c.set_constant.slot;
-			auto data = c.set_constant.data;
-			auto size = c.set_constant.size;
-
+			auto data = c.buf.data();
+			auto size = c.buf.size();
 			//Create Constant Buffer
 			auto buffer = mbuffers[name];
 			if (buffer == nullptr) {
@@ -1669,8 +1670,8 @@ oden::oden_present_graphics(
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
 			auto buffer = mbuffers[name];
-			auto size = c.set_vertex.size;
-			auto data = c.set_vertex.data;
+			auto data = c.buf.data();
+			auto size = c.buf.size();
 			if (buffer == nullptr) {
 				LOG_MAIN("create_buffer-vertex name=%s\n", name.c_str());
 				buffer = create_buffer(device, size);
@@ -1712,8 +1713,8 @@ oden::oden_present_graphics(
 		//CMD_SET_INDEX
 		if (type == CMD_SET_INDEX) {
 			auto buffer = mbuffers[name];
-			auto size = c.set_index.size;
-			auto data = c.set_index.data;
+			auto data = c.buf.data();
+			auto size = c.buf.size();
 			if (buffer == nullptr) {
 				LOG_MAIN("create_buffer-index name=%s\n", name.c_str());
 				buffer = create_buffer(device, size);

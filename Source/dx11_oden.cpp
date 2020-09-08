@@ -283,6 +283,8 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 			auto rtv = mrtv[name];
 			auto dsv = mdsv[name];
 			auto uav = muav[name];
+			auto data = c.buf.data();
+			auto size = c.buf.size();
 			if (tex == nullptr) {
 				fmt_color = DXGI_FORMAT_R8G8B8A8_UNORM;
 				D3D11_TEXTURE2D_DESC desc = {
@@ -290,9 +292,9 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 					D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS, 0,  0,
 				};
 				D3D11_SUBRESOURCE_DATA initdata = {};
-				initdata.pSysMem = c.set_texture.data;
+				initdata.pSysMem = data;
 				initdata.SysMemPitch = c.set_texture.stride_size;
-				initdata.SysMemSlicePitch = c.set_texture.size;
+				initdata.SysMemSlicePitch = size;
 				dev->CreateTexture2D(&desc, &initdata, &tex);
 				info_printf("CreateTexture2D : name=%s, tex=%p\n", name.c_str(), tex);
 				if (tex)
@@ -382,9 +384,12 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 		if (type == CMD_SET_CONSTANT) {
 			auto slot = c.set_constant.slot;
 			auto cb = mbuf[name];
+			auto data = c.buf.data();
+			auto size = c.buf.size();
+
 			if (cb == nullptr) {
 				D3D11_BUFFER_DESC bd = {
-					c.set_constant.size, D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0
+					size, D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0
 				};
 				auto hr = dev->CreateBuffer(&bd, nullptr, &cb);
 				info_printf("CreateBuffer : name=%s, cb=%p\n", name.c_str(), cb);
@@ -395,7 +400,7 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 					exit(1);
 				}
 			}
-			ctx->UpdateSubresource(cb, 0, NULL, c.set_constant.data, 0, 0);
+			ctx->UpdateSubresource(cb, 0, NULL, data, 0, 0);
 			ctx->VSSetConstantBuffers(slot, 1, &cb);
 			ctx->PSSetConstantBuffers(slot, 1, &cb);
 			ctx->CSSetConstantBuffers(slot, 1, &cb);
@@ -404,9 +409,12 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
 			auto vb = mbuf[name];
+			auto data = c.buf.data();
+			auto size = c.buf.size();
+
 			if (vb == nullptr) {
 				D3D11_BUFFER_DESC bd = {
-					c.set_vertex.size, D3D11_USAGE_DYNAMIC, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0
+					size, D3D11_USAGE_DYNAMIC, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0
 				};
 				bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 				auto hr = dev->CreateBuffer(&bd, nullptr, &vb);
@@ -421,7 +429,7 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 				D3D11_MAPPED_SUBRESOURCE msr = {};
 				ctx->Map(vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 				if (msr.pData) {
-					memcpy(msr.pData, c.set_vertex.data, c.set_vertex.size);
+					memcpy(msr.pData, data, size);
 					ctx->Unmap(vb, 0);
 				} else {
 					err_printf("ERROR CMD_SET_VERTEX name=%s Can't map\n", name.c_str());
@@ -559,25 +567,30 @@ oden::oden_present_graphics(const char * appname, std::vector<oden::cmd> & vcmd,
 		//CMD_SET_INDEX
 		if (type == CMD_SET_INDEX) {
 			auto ib = mbuf[name];
-			if (c.set_index.data && ib == nullptr) {
+			auto data = c.buf.data();
+			auto size = c.buf.size();
+			if (size && ib == nullptr) {
 				D3D11_BUFFER_DESC bd = {
-					c.set_index.size, D3D11_USAGE_DYNAMIC, D3D11_BIND_INDEX_BUFFER, 0, 0, 0
+					size, D3D11_USAGE_DYNAMIC, D3D11_BIND_INDEX_BUFFER, 0, 0, 0
 				};
 				bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 				auto hr = dev->CreateBuffer(&bd, nullptr, &ib);
 				mbuf[name] = ib;
-				printf("name=%s, ib=%p size=%d\n", name.c_str(), ib, c.set_index.size);
+				printf("name=%s, ib=%p size=%d\n", name.c_str(), ib, size);
 
 				D3D11_MAPPED_SUBRESOURCE msr = {};
 				ctx->Map(ib, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 				if (msr.pData) {
-					memcpy(msr.pData, c.set_index.data, c.set_index.size);
+					memcpy(msr.pData, data, size);
 					ctx->Unmap(ib, 0);
 				} else {
 					err_printf("ERROR CMD_SET_INDEX name=%s Can't map\n", name.c_str());
 				}
 			}
-			ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
+			if(size)
+				ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
+			else
+				ctx->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
 		}
 
 		//CMD_DRAW_INDEX
