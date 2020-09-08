@@ -160,7 +160,7 @@ int main()
 
 	struct constdata {
 		vector4 time;
-		vector4 color;
+		vector4 misc;
 		matrix4x4 world;
 		matrix4x4 proj;
 		matrix4x4 view;
@@ -169,6 +169,7 @@ int main()
 		vector4 direction;
 	};
 	constdata cdata {};
+	constdata cdata2 {};
 	bloominfo binfoX {};
 	bloominfo binfoY {};
 
@@ -199,11 +200,6 @@ int main()
 		cdata.time.data[1] = 0.0;
 		cdata.time.data[2] = 1.0;
 		cdata.time.data[3] = 1.0;
-
-		cdata.color.data[0] = 1.0;
-		cdata.color.data[1] = 0.0;
-		cdata.color.data[2] = 1.0;
-		cdata.color.data[3] = 1.0;
 
 		//matrix : world
 		stack.Reset();
@@ -244,11 +240,19 @@ int main()
 		//Draw Cube to offscreenbuffer.
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
 		SetShader(vcmd, "./shaders/model", is_update, false, true);
+		cdata.misc.data[0] = 0.0;
 		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
 		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
 		SetIndex(vcmd, "cube_ib", idx_cube, sizeof(idx_cube));
 		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube));
+
+		SetShader(vcmd, "./shaders/model", is_update, false, true);
+		cdata.misc.data[0] = 1.0;
+		SetConstant(vcmd, constant_name + "head", 0, &cdata, sizeof(cdata));
+		SetTexture(vcmd, tex_name, 0);
+		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube));
+
 		GenerateMipmap(vcmd, offscreen_name, Width, Height);
 
 		//Create Bloom X
@@ -301,7 +305,6 @@ int main()
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));
-		
 
 		//Present CMD to ODEN.
 		SetBarrierToPresent(vcmd, backbuffer_name);

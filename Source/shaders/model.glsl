@@ -44,6 +44,11 @@ void main()
 {
 	mat4 wvp  = ubuf.proj * ubuf.view * ubuf.world;
 	v_pos = vec4(position.xyz, 1.0);
+	if(ubuf.misc.x > 0.5 ) {
+		if(v_pos.y > 0.0)
+			v_pos.x *= 0.0;
+		v_pos.y += 2.1;
+	}
 	v_nor = normal;
 	v_uv = uv;
 	v_pos = wvp * vec4(v_pos.xyz, 1.0);

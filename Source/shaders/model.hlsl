@@ -48,6 +48,11 @@ PSInput VSMain(
 {
 	PSInput result = (PSInput)0;
 	result.position = position;
+	if(misc.x > 0.5 ) {
+		if(result.position.y > 0.0)
+			result.position.x *= 0.0;
+		result.position.y += 2.1;
+	}
 	result.normal = normal;
 	result.uv = uv;
 	result.position = mul(result.position, transpose(world));
