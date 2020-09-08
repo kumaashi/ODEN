@@ -780,22 +780,22 @@ update_descriptor_sets(
 	uint32_t binding,
 	VkDescriptorType type)
 {
-	VkWriteDescriptorSet dw_sets = {};
+	VkWriteDescriptorSet wd_sets = {};
 
-	dw_sets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	dw_sets.pNext = NULL;
-	dw_sets.descriptorType = type;
-	dw_sets.descriptorCount = 1;
-	dw_sets.dstSet = descriptor_sets;
-	dw_sets.dstBinding = binding;
-	dw_sets.dstArrayElement = 0;
+	wd_sets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	wd_sets.pNext = NULL;
+	wd_sets.descriptorType = type;
+	wd_sets.descriptorCount = 1;
+	wd_sets.dstSet = descriptor_sets;
+	wd_sets.dstBinding = binding;
+	wd_sets.dstArrayElement = 0;
 	if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-		dw_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
+		wd_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
 	if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
-		dw_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
+		wd_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
 	if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		dw_sets.pBufferInfo = (const VkDescriptorBufferInfo *)pinfo;
-	vkUpdateDescriptorSets(device, 1, &dw_sets, 0, NULL);
+		wd_sets.pBufferInfo = (const VkDescriptorBufferInfo *)pinfo;
+	vkUpdateDescriptorSets(device, 1, &wd_sets, 0, NULL);
 }
 
 void
