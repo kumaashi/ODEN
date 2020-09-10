@@ -23,14 +23,13 @@
 
 #version 450
 
-layout(set=2, binding=0, rgba16) uniform image2D tex0;
-layout(set=2, binding=1, rgba16) uniform image2D tex1;
+layout(set=2, binding=0, rgba16) uniform image2D tex[];
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
 	ivec2 loc_dst = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 loc_src = loc_dst * 2;
 	vec4 c = vec4(0, 0, 0, 0);
-	c += imageLoad(tex0, loc_src);
-	imageStore(tex1, loc_dst, c);
+	c += imageLoad(tex[0], loc_src);
+	imageStore(tex[1], loc_dst, c);
 }

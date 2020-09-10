@@ -22,7 +22,7 @@
  */
 #version 450 core
 
-layout(set=0, binding=4) uniform sampler2D tex0;
+layout(set=0, binding=0) uniform sampler2D tex[];
 layout(set=1, binding=0) uniform buf {
 	vec4 time;
 	vec4 misc;
@@ -59,7 +59,7 @@ void main()
 	vec2 uv = v_uv;
 	if(uv.x > 1.0) discard;
 	if(uv.y > 1.0) discard;
-	vec4 col = texture(tex0, uv, 0.0);
+	vec4 col = texture(tex[0], uv, 0.0);
 	out_color = pow(col.xxxx, vec4(64.0));
 }
 #endif //_PS_

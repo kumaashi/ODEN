@@ -23,7 +23,7 @@
 #version 450 core
 #extension GL_EXT_nonuniform_qualifier : enable
 
-layout(set=0, binding=0) uniform sampler2D tex0;
+layout(set=0, binding=0) uniform sampler2D tex[];
 layout(set=1, binding=0) uniform object_buffer {
 	vec4 time;
 	vec4 misc;
@@ -66,7 +66,7 @@ layout(location=0) out vec4 out_color;
 
 void main()
 {
-	vec4 col = texture(tex0, v_uv) + vec4(0.1, 0.2, 0.3, 1.0);
+	vec4 col = texture(tex[0], v_uv) + vec4(0.1, 0.2, 0.3, 1.0);
 	col.w = v_pos.z / v_pos.w;
 	out_color = col;
 }

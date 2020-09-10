@@ -22,8 +22,7 @@
  */
 #version 450 core
 
-layout(set=0, binding=1) uniform sampler2D tex0;
-layout(set=0, binding=3) uniform sampler2D tex1;
+layout(set=0, binding=0) uniform sampler2D tex[];
 layout(set=1, binding=0) uniform buf {
 	vec4 time;
 	vec4 misc;
@@ -58,10 +57,10 @@ layout(location=0) out vec4 out_color;
 void main()
 {
 	vec2 uv = v_uv;
-	vec4 col = texture(tex0, uv, 0.0);
-	vec4 blurcol = texture(tex1, uv, 0.0);
-	col.x = texture(tex0, uv + vec2(0.001, 0.001), 0).x;
-	col.z = texture(tex0, uv - vec2(0.001, 0.001), 0).z;
+	vec4 col = texture(tex[0], uv, 0.0);
+	vec4 blurcol = texture(tex[1], uv, 0.0);
+	col.x = texture(tex[0], uv + vec2(0.001, 0.001), 0).x;
+	col.z = texture(tex[0], uv - vec2(0.001, 0.001), 0).z;
 	out_color = col + blurcol;
 }
 #endif //_PS_

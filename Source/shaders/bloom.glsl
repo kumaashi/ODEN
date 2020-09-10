@@ -24,8 +24,7 @@
 #version 450 core
 
 
-layout(set=0, binding=1) uniform sampler2D tex0;
-layout(set=0, binding=2) uniform sampler2D tex1;
+layout(set=0, binding=0) uniform sampler2D tex[];
 layout(set=1, binding=0) uniform buf {
 	vec4 direction;
 } ubuf;
@@ -64,13 +63,13 @@ vec4 blur13(vec2 uv, vec2 resolution, vec2 direction, float miplevel)
 	vec2 off1 = 1.411764705882353 * direction;
 	vec2 off2 = 3.2941176470588234 * direction;
 	vec2 off3 = 5.176470588235294 * direction;
-	color += texture(tex0, uv, miplevel) * 0.1964825501511404;
-	color += texture(tex0, uv + (off1 / resolution), miplevel) * 0.2969069646728344;
-	color += texture(tex0, uv - (off1 / resolution), miplevel) * 0.2969069646728344;
-	color += texture(tex0, uv + (off2 / resolution), miplevel) * 0.09447039785044732;
-	color += texture(tex0, uv - (off2 / resolution), miplevel) * 0.09447039785044732;
-	color += texture(tex0, uv + (off3 / resolution), miplevel) * 0.010381362401148057;
-	color += texture(tex0, uv - (off3 / resolution), miplevel) * 0.010381362401148057;
+	color += texture(tex[0], uv, miplevel) * 0.1964825501511404;
+	color += texture(tex[0], uv + (off1 / resolution), miplevel) * 0.2969069646728344;
+	color += texture(tex[0], uv - (off1 / resolution), miplevel) * 0.2969069646728344;
+	color += texture(tex[0], uv + (off2 / resolution), miplevel) * 0.09447039785044732;
+	color += texture(tex[0], uv - (off2 / resolution), miplevel) * 0.09447039785044732;
+	color += texture(tex[0], uv + (off3 / resolution), miplevel) * 0.010381362401148057;
+	color += texture(tex[0], uv - (off3 / resolution), miplevel) * 0.010381362401148057;
 	color.a = 1.0;
 	return color;
 }

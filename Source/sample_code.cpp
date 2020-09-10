@@ -244,8 +244,8 @@ int main()
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
 		SetIndex(vcmd, "cube_ib", idx_cube, sizeof(idx_cube));
 		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
-		SetConstant(vcmd, constant_name, 100, &cdata, sizeof(cdata));
-		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube), 100);
+		SetConstant(vcmd, constant_name, 1, &cdata, sizeof(cdata));
+		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube), 1);
 
 		cdata.misc.data[0] = 1.0;
 		SetShader(vcmd, "./shaders/model", is_update, false, true);

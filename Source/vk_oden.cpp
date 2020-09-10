@@ -788,8 +788,8 @@ update_descriptor_sets(
 	wd_sets.descriptorType = type;
 	wd_sets.descriptorCount = 1;
 	wd_sets.dstSet = descriptor_sets;
-	wd_sets.dstBinding = binding;
-	wd_sets.dstArrayElement = 0;
+	wd_sets.dstBinding = 0;
+	wd_sets.dstArrayElement = binding;
 	if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		wd_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
 	if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
@@ -797,13 +797,15 @@ update_descriptor_sets(
 	if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		wd_sets.pBufferInfo = (const VkDescriptorBufferInfo *)pinfo;
 	vkUpdateDescriptorSets(device, 1, &wd_sets, 0, NULL);
+	LOG_MAIN("%s : descriptor_sets=0x%p, type=%d, wd_sets.dstArrayElement=%d\n",
+		__func__, descriptor_sets, type, wd_sets.dstArrayElement);
 }
 
 void
 oden::oden_present_graphics(
 	const char * appname, std::vector<cmd> & vcmd,
 	void *handle, uint32_t w, uint32_t h,
-	uint32_t count, uint32_t heapcount, uint32_t slotmax)
+	uint32_t count, uint32_t heapcount, uint32_t bindingmax)
 {
 	HWND hwnd = (HWND) handle;
 
@@ -1039,9 +1041,13 @@ oden::oden_present_graphics(
 		queue_info.pQueuePriorities = queue_priorities;
 		queue_info.flags = 0;
 
+		VkPhysicalDeviceDescriptorIndexingFeatures difeatures = {};
+		difeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+		difeatures.runtimeDescriptorArray = VK_TRUE;
+
 		VkDeviceCreateInfo device_info = {};
 		device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		device_info.pNext = NULL;
+		device_info.pNext = &difeatures;
 		device_info.queueCreateInfoCount = 1;
 		device_info.pQueueCreateInfos = &queue_info;
 		device_info.enabledLayerCount = 1;
@@ -1121,15 +1127,14 @@ oden::oden_present_graphics(
 		descriptor_pool = create_descriptor_pool(device, count * RDT_SLOT_MAX);
 
 		{
+			VkShaderStageFlags shader_stages = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT;
 			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_srv;
 			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_cbv;
 			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_uav;
-			for (int i = 0  ; i < slotmax; i++)
-			{
-				vdesc_setlayout_binding_srv.push_back({(uint32_t)i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
-				vdesc_setlayout_binding_cbv.push_back({(uint32_t)i, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
-				vdesc_setlayout_binding_uav.push_back({(uint32_t)i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
-			}
+			vdesc_setlayout_binding_srv.push_back({0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, bindingmax, shader_stages, nullptr});
+			vdesc_setlayout_binding_cbv.push_back({0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, bindingmax, shader_stages, nullptr});
+			vdesc_setlayout_binding_uav.push_back({0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, bindingmax, shader_stages, nullptr});
+
 			vdescriptor_layouts.resize(RDT_SLOT_MAX);
 			vdescriptor_layouts[RDT_SLOT_SRV] = create_descriptor_set_layout(device, vdesc_setlayout_binding_srv);
 			vdescriptor_layouts[RDT_SLOT_CBV] = create_descriptor_set_layout(device, vdesc_setlayout_binding_cbv);
@@ -1154,6 +1159,9 @@ oden::oden_present_graphics(
 
 			LOG_MAIN("backbuffer cmdbuf[%d] = %p\n", i, ref.cmdbuf);
 			LOG_MAIN("backbuffer fence[%d] = %p\n", i, ref.fence);
+			LOG_MAIN("ref.descriptor_set_srv[%d] = 0x%p\n", i, ref.descriptor_set_srv);
+			LOG_MAIN("ref.descriptor_set_cbv[%d] = 0x%p\n", i, ref.descriptor_set_cbv);
+			LOG_MAIN("ref.descriptor_set_uav[%d] = 0x%p\n", i, ref.descriptor_set_uav);
 		}
 
 		LOG_MAIN("VkInstance inst = %p\n", inst);
@@ -1496,16 +1504,16 @@ oden::oden_present_graphics(
 				image_info.sampler = sampler_linear;
 				image_info.imageView = imageview_color;
 				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s binding=%d\n", name.c_str(), binding);
 				update_descriptor_sets(device, descriptor_set_srv, &image_info, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s binding=%d\n", name.c_str(), binding);
 			}
 
 			if (type == CMD_SET_TEXTURE_UAV) {
+				auto binding = slot;
 				auto miplevel = c.set_texture.miplevel;
 				auto name_color_mip = oden_get_mipmap_name(name_color, miplevel);
-				imageview_color = mimageviews[name_color_mip];
-				auto binding = slot;
 				VkDescriptorImageInfo image_info = {};
+				imageview_color = mimageviews[name_color_mip];
 				image_info.sampler = sampler_linear;
 				image_info.imageView = imageview_color;
 				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -1560,7 +1568,7 @@ oden::oden_present_graphics(
 			buffer_info.range = size;
 
 			update_descriptor_sets(device, descriptor_set_cbv, &buffer_info, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			LOG_MAIN("vkUpdateDescriptorSets start name=%s binding=%d\n", name.c_str(), binding);
+			LOG_MAIN("vkUpdateDescriptorSets start name=%s start_offset=%d\n", name.c_str(), start_offset);
 		}
 
 		//CMD_SET_VERTEX
