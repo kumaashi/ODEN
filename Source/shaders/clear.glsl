@@ -21,6 +21,7 @@
  *
  */
 #version 450 core
+#extension GL_EXT_nonuniform_qualifier : enable
 
 layout(set=0, binding=0) uniform sampler2D tex[];
 layout(set=1, binding=0) uniform buf {
@@ -29,6 +30,7 @@ layout(set=1, binding=0) uniform buf {
 	mat4 world;
 	mat4 proj;
 	mat4 view;
+	uint matid[4];
 } ubufs[];
 
 #ifdef _VS_

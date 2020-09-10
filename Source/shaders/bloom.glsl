@@ -22,12 +22,17 @@
  */
 
 #version 450 core
-
+#extension GL_EXT_nonuniform_qualifier : enable
 
 layout(set=0, binding=0) uniform sampler2D tex[];
 layout(set=1, binding=0) uniform buf {
-	vec4 direction;
-} ubuf;
+	vec4 time;
+	vec4 misc;
+	mat4 world;
+	mat4 proj;
+	mat4 view;
+	uint matid[4];
+} ubufs[];
 
 #ifdef _VS_
 layout(location=0) in vec4 position;
@@ -37,6 +42,7 @@ layout(location=2) in vec2 uv;
 layout(location=0) out vec4 v_pos;
 layout(location=1) out vec3 v_nor;
 layout(location=2) out vec2 v_uv;
+layout(location=3) flat out int v_id;
 
 void main()
 {
@@ -44,6 +50,7 @@ void main()
 	v_nor = vec3(0, 0, 1);
 	v_uv = uv;
 	gl_Position = v_pos;
+	v_id = int(gl_InstanceIndex);
 }
 #endif //_VS_
 
@@ -53,6 +60,7 @@ void main()
 layout(location=0) in vec4 v_pos;
 layout(location=1) in vec3 v_nor;
 layout(location=2) in vec2 v_uv;
+layout(location=3) flat in int v_id;
 
 layout(location=0) out vec4 out_color;
 
@@ -77,8 +85,9 @@ vec4 blur13(vec2 uv, vec2 resolution, vec2 direction, float miplevel)
 
 void main() {
 	vec2 uv = v_uv;
-	vec2 dir = ubuf.direction.zw;
-	vec2 rtsize = ubuf.direction.xy;
+	int id = v_id; //deprecated, gl_InstanceID
+	vec2 dir = ubufs[id].misc.zw;
+	vec2 rtsize = ubufs[id].misc.xy;
 	vec4 col = vec4(0, 0, 0, 0);
 
 	const int MAX_LEVEL = 10;

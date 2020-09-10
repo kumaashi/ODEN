@@ -74,6 +74,19 @@ struct vertex_format {
 	vector2 uv;
 };
 
+struct constdata {
+	vector4 time;
+	vector4 misc;
+	matrix4x4 world;
+	matrix4x4 proj;
+	matrix4x4 view;
+	uint32_t matid[4];
+};
+
+struct bloominfo {
+	vector4 direction;
+};
+
 void
 GenerateMipmap(std::vector<oden::cmd> & vcmd, std::string name, int w, int h)
 {
@@ -81,11 +94,11 @@ GenerateMipmap(std::vector<oden::cmd> & vcmd, std::string name, int w, int h)
 	//Generate Mipmap
 	SetShader(vcmd, "./shaders/genmipmap", false, false, false);
 	int miplevel = oden_get_mipmap_max(w, h);
+	SetTextureUav(vcmd, name, 0, 0, 0, 0, nullptr, 0);
 	for (int i = 1; i < miplevel; i++) {
-		SetTextureUav(vcmd, name, 0 + (i * 2), 0, 0, i - 1, nullptr, 0);
-		SetTextureUav(vcmd, name, 1 + (i * 2), 0, 0, i - 0, nullptr, 0);
-		Dispatch(vcmd, "mip" + name, (w >> i), (h >> i), 1);
+		SetTextureUav(vcmd, name, i, 0, 0, i, nullptr, 0);
 	}
+	Dispatch(vcmd, "mip" + name, w, h, miplevel);
 }
 
 int main()
@@ -158,18 +171,8 @@ int main()
 		}
 	}
 
-	struct constdata {
-		vector4 time;
-		vector4 misc;
-		matrix4x4 world;
-		matrix4x4 proj;
-		matrix4x4 view;
-	};
-	struct bloominfo {
-		vector4 direction;
-	};
+
 	constdata cdata {};
-	constdata cdata2 {};
 	constdata binfoX {};
 	constdata binfoY {};
 
@@ -178,6 +181,11 @@ int main()
 
 	auto tex_name = "testtex";
 	uint64_t frame = 0;
+	SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
+	for(int i = 0 ; i < ShaderSlotMax; i++) {
+		SetConstant(vcmd, "nullconst", 0, &cdata, sizeof(cdata));
+		SetTexture(vcmd, tex_name, i);
+	}
 	while (Update()) {
 		auto buffer_index = frame % BufferMax;
 		auto index_name = std::to_string(buffer_index);
@@ -255,6 +263,7 @@ int main()
 
 		GenerateMipmap(vcmd, offscreen_name, Width, Height);
 
+		/*
 		//Create Bloom X
 		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
 		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
@@ -305,6 +314,7 @@ int main()
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 6);
+		*/
 
 		//Present CMD to ODEN.
 		SetBarrierToPresent(vcmd, backbuffer_name);

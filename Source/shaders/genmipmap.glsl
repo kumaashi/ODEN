@@ -21,15 +21,35 @@
  *
  */
 
-#version 450
+#version 450 core
+#extension GL_EXT_nonuniform_qualifier : enable
 
-layout(set=2, binding=0, rgba16) uniform image2D tex[];
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(set=0, binding=0) uniform sampler2D tex[];
+layout(set=1, binding=0) uniform buf {
+	vec4 time;
+	vec4 misc;
+	mat4 world;
+	mat4 proj;
+	mat4 view;
+	uint matid[4];
+} ubufs[];
+
+layout(push_constant) uniform pushconstlocal {
+	uint id;
+} pushconst;
+
+layout(set=2, binding=0, rgba16) uniform image2D imagebuf[];
+
+layout(local_size_x=1, local_size_y=1, local_size_z=1) in;
 void main()
 {
+	uint id = pushconst.id;
 	ivec2 loc_dst = ivec2(gl_GlobalInvocationID.xy);
-	ivec2 loc_src = loc_dst * 2;
-	vec4 c = vec4(0, 0, 0, 0);
-	c += imageLoad(tex[0], loc_src);
-	imageStore(tex[1], loc_dst, c);
+	ivec2 loc_src = loc_dst;
+	int miplevel = int(gl_GlobalInvocationID.z);
+	if(miplevel == 0)
+		return;
+	loc_src <<= miplevel;
+	vec4 c = imageLoad(imagebuf[id + 0], loc_src);
+	imageStore(imagebuf[miplevel], loc_dst, c);
 }

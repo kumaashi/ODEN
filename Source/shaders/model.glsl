@@ -30,6 +30,7 @@ layout(set=1, binding=0) uniform object_buffer {
 	mat4 world;
 	mat4 proj;
 	mat4 view;
+	uint matid[4];
 } ubufs[];
 
 #ifdef _VS_

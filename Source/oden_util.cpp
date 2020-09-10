@@ -160,6 +160,17 @@ void SetConstant(std::vector<cmd> & vcmd, std::string name,
 	vcmd.push_back(c);
 }
 
+void SetId(std::vector<cmd> & vcmd, std::string name,
+	uint32_t id)
+{
+	cmd c = {};
+	c.type = CMD_SET_ID;
+	c.name = name;
+	c.set_id.id = id;
+	vcmd.push_back(c);
+}
+
+
 void SetShader(
 	std::vector<cmd> & vcmd, std::string name,
 	bool is_update, bool is_cull, bool is_enable_depth)
@@ -235,47 +246,8 @@ void DebugPrint(std::vector<cmd> & vcmd)
 	for (auto & c : vcmd) {
 		printf("%s : ", c.name.c_str());
 		auto type = c.type;
-		switch (type) {
-		case CMD_NOP:
-			printf("CMD_NOP\n");
-			break;
-		case CMD_SET_BARRIER:
-			printf("CMD_SET_BARRIER\n");
-			break;
-		case CMD_SET_RENDER_TARGET:
-			printf("CMD_SET_RENDER_TARGET\n");
-			break;
-		case CMD_SET_TEXTURE:
-			printf("CMD_SET_TEXTURE\n");
-			break;
-		case CMD_SET_VERTEX:
-			printf("CMD_SET_VERTEX\n");
-			break;
-		case CMD_SET_INDEX:
-			printf("CMD_SET_INDEX\n");
-			break;
-		case CMD_SET_CONSTANT:
-			printf("CMD_SET_CONSTANT\n");
-			break;
-		case CMD_SET_SHADER:
-			printf("CMD_SET_SHADER\n");
-			break;
-		case CMD_CLEAR:
-			printf("CMD_CLEAR\n");
-			break;
-		case CMD_CLEAR_DEPTH:
-			printf("CMD_CLEAR_DEPTH\n");
-			break;
-		case CMD_DRAW_INDEX:
-			printf("CMD_DRAW_INDEX\n");
-			break;
-		case CMD_DRAW:
-			printf("CMD_DRAW\n");
-			break;
-		default:
-			printf("CMD_UNKNOWN %d\n", type);
-			break;
-		}
+		auto cmdname = oden_get_cmd_name(type);
+		printf("%s\n", cmdname);
 	}
 }
 

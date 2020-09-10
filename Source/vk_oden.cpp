@@ -328,10 +328,12 @@ create_renderpass(
 	VkAttachmentReference color_reference = {};
 	color_reference.attachment = 0;
 	color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	//color_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 
 	VkAttachmentReference depth_reference = {};
 	depth_reference.attachment = 1;
 	depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	//depth_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 
 	for (int i = 0 ; i < color_num; i++) {
 		auto ref = color_reference;
@@ -500,7 +502,7 @@ create_descriptor_pool(
 	VkDescriptorPoolCreateInfo info = {};
 	std::vector<VkDescriptorPoolSize> vpoolsizes;
 
-	heapcount = 0xFFFF;
+	heapcount = 0xFFFFF;
 
 	vpoolsizes.push_back({VK_DESCRIPTOR_TYPE_SAMPLER, heapcount});
 	vpoolsizes.push_back({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, heapcount});
@@ -517,7 +519,7 @@ create_descriptor_pool(
 	info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	info.pNext = nullptr;
 	info.flags = 0;
-	info.maxSets = 0xFFFF; //todo
+	info.maxSets = 0xFF; //todo
 	info.poolSizeCount = (uint32_t)vpoolsizes.size();
 	info.pPoolSizes = vpoolsizes.data();
 	auto err = vkCreateDescriptorPool(device, &info, nullptr, &ret);
@@ -550,10 +552,17 @@ create_pipeline_layout(
 	VkPipelineLayout ret = nullptr;
 	VkPipelineLayoutCreateInfo info = {};
 
+	VkPushConstantRange pushConstantRange{};
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = sizeof(uint32_t);
+
 	info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	info.pNext = NULL;
 	info.setLayoutCount = count;
 	info.pSetLayouts = descriptor_layouts;
+	info.pushConstantRangeCount  = 1;
+	info.pPushConstantRanges = &pushConstantRange;
 	auto err = vkCreatePipelineLayout(device, &info, NULL, &ret);
 	return (ret);
 }
@@ -778,7 +787,7 @@ update_descriptor_sets(
 	VkDevice device,
 	VkDescriptorSet descriptor_sets,
 	const void *pinfo,
-	uint32_t binding,
+	uint32_t index,
 	VkDescriptorType type)
 {
 	VkWriteDescriptorSet wd_sets = {};
@@ -789,7 +798,7 @@ update_descriptor_sets(
 	wd_sets.descriptorCount = 1;
 	wd_sets.dstSet = descriptor_sets;
 	wd_sets.dstBinding = 0;
-	wd_sets.dstArrayElement = binding;
+	wd_sets.dstArrayElement = index;
 	if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 		wd_sets.pImageInfo = (const VkDescriptorImageInfo *)pinfo;
 	if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
@@ -1298,14 +1307,11 @@ oden::oden_present_graphics(
 	//Filter Phase
 	VkRenderPass selected_renderpass = nullptr;
 	LOG_MAIN("vcmd.size=%lu\n", vcmd.size());
+	cmd_index = 0;
 	for (auto & c : vcmd) {
 		auto type = c.type;
 		auto name = c.name;
-		LOG_MAIN("cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
-
-		if (type == CMD_SET_BARRIER) {
-			//Nothing todo.
-		}
+		LOG_MAIN("prepare HEAD : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
 
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
@@ -1499,17 +1505,17 @@ oden::oden_present_graphics(
 			}
 
 			if (type == CMD_SET_TEXTURE) {
-				auto binding = slot;
+				auto index = slot;
 				VkDescriptorImageInfo image_info = {};
 				image_info.sampler = sampler_linear;
 				image_info.imageView = imageview_color;
 				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				update_descriptor_sets(device, descriptor_set_srv, &image_info, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s binding=%d\n", name.c_str(), binding);
+				update_descriptor_sets(device, descriptor_set_srv, &image_info, index, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s index=%d\n", name.c_str(), index);
 			}
 
 			if (type == CMD_SET_TEXTURE_UAV) {
-				auto binding = slot;
+				auto index = slot;
 				auto miplevel = c.set_texture.miplevel;
 				auto name_color_mip = oden_get_mipmap_name(name_color, miplevel);
 				VkDescriptorImageInfo image_info = {};
@@ -1517,8 +1523,9 @@ oden::oden_present_graphics(
 				image_info.sampler = sampler_linear;
 				image_info.imageView = imageview_color;
 				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-				update_descriptor_sets(device, descriptor_set_uav, &image_info, binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-				LOG_MAIN("vkUpdateDescriptorSets(compute image) imageview_color=%p, start name=%s binding=%d\n", imageview_color, name_color_mip.c_str(), binding);
+				update_descriptor_sets(device, descriptor_set_uav, &image_info, index, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+				LOG_MAIN("vkUpdateDescriptorSets(compute image) imageview_color=%p, start name=%s index=%d\n",
+					imageview_color, name_color_mip.c_str(), index);
 			}
 		}
 
@@ -1561,14 +1568,15 @@ oden::oden_present_graphics(
 			}
 
 			//update buffer reference
-			auto binding = slot;
+			auto index = slot;
 			VkDescriptorBufferInfo buffer_info = {};
 			buffer_info.buffer = buffer;
 			buffer_info.offset = start_offset;
 			buffer_info.range = size;
 
-			update_descriptor_sets(device, descriptor_set_cbv, &buffer_info, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			LOG_MAIN("vkUpdateDescriptorSets start name=%s start_offset=%d\n", name.c_str(), start_offset);
+			update_descriptor_sets(device, descriptor_set_cbv, &buffer_info, index, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			LOG_MAIN("vkUpdateDescriptorSets start name=%s, index=%d, start_offset=%d\n",
+				name.c_str(), index, start_offset);
 		}
 
 		//CMD_SET_VERTEX
@@ -1675,12 +1683,16 @@ oden::oden_present_graphics(
 		if (type == CMD_DRAW_INDEX) {}
 		if (type == CMD_DRAW) {}
 		if (type == CMD_DISPATCH) {}
+
+		LOG_MAIN("prepare : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
+		cmd_index++;
 	}
 
 
 	printf("=========================================================================================\n");
 	printf(" START Batch Commands\n");
 	printf("=========================================================================================\n");
+	cmd_index = 0;
 	//Cmd Phase
 	std::vector<VkDescriptorSet> vdescriptor_sets_graphics = {
 		descriptor_set_srv,
@@ -1697,10 +1709,8 @@ oden::oden_present_graphics(
 	for (auto & c : vcmd) {
 		auto type = c.type;
 		auto name = c.name;
-		LOG_MAIN("cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
 
 		if (type == CMD_SET_BARRIER) {
-			LOG_MAIN("SET BARRIER name=%s\n", name.c_str());
 			auto name_color = name;
 			auto name_depth = oden_get_depth_render_target_name(name);
 			auto image_color = mimages[name_color];
@@ -1715,27 +1725,31 @@ oden::oden_present_graphics(
 				if (c.set_barrier.to_present) {
 					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+					LOG_MAIN("SET BARRIER  0x%p : to_present name=%s : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR\n", image_color, name.c_str());
 				}
 				if (c.set_barrier.to_texture) {
-					if (name.find("depth") != std::string::npos)
+					if (name.find("depth") != std::string::npos) {
 						barrier = get_barrier(image_color, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-					else
+						LOG_MAIN("SET BARRIER  0x%p : to_texture name=%s : VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL\n", image_color, name.c_str());
+					} else {
 						barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+						LOG_MAIN("SET BARRIER  0x%p : to_texture name=%s : VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL\n", image_color, name.c_str());
+					}
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 				}
 				if (c.set_barrier.to_rendertarget) {
-					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+					LOG_MAIN("SET BARRIER  0x%p : to_rendertarget name=%s : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL\n", image_color, name.c_str());
 				}
-				LOG_MAIN("DONE BARRIER name=%s\n", name.c_str());
 			}
 
 			if (image_depth) {
 				if (c.set_barrier.to_depthrendertarget) {
-					barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+					barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+					LOG_MAIN("SET BARRIER  0x%p : to_depthrendertarget name=%s : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL\n", image_depth, name.c_str());
 				}
-				LOG_MAIN("DONE BARRIER name=%s\n", name.c_str());
 			}
 		}
 
@@ -1803,8 +1817,13 @@ oden::oden_present_graphics(
 		}
 
 		//CMD_SET_CONSTANT
-		if (type == CMD_SET_CONSTANT) {
-			//todo
+		if (type == CMD_SET_ID) {
+			uint32_t id = c.set_id.id;
+			vkCmdPushConstants(
+				ref.cmdbuf,
+				pipeline_layout,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+				0, sizeof(uint32_t), &id);
 		}
 
 		//CMD_SET_VERTEX
@@ -1905,6 +1924,7 @@ oden::oden_present_graphics(
 		if (type == CMD_DISPATCH) {
 			vkCmdDispatch(ref.cmdbuf, c.dispatch.x, c.dispatch.y, c.dispatch.z);
 		}
+		LOG_MAIN("draw : cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
 	}
 	if (rec.renderpass_commited)
 		vkCmdEndRenderPass(ref.cmdbuf);

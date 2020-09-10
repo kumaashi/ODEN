@@ -43,6 +43,7 @@ enum {
 	CMD_SET_VERTEX,
 	CMD_SET_INDEX,
 	CMD_SET_CONSTANT,
+	CMD_SET_ID,
 	CMD_SET_SHADER,
 	CMD_CLEAR,
 	CMD_CLEAR_DEPTH,
@@ -96,6 +97,11 @@ struct cmd {
 		struct set_constant_t {
 			int slot;
 		} set_constant;
+
+		struct set_id_t {
+			uint32_t id;
+		} set_id;
+		
 
 		struct set_shader_t {
 			bool is_update;
@@ -189,6 +195,8 @@ oden_get_cmd_name(int c)
 		return "CMD_SET_INDEX";
 	if (c == CMD_SET_CONSTANT)
 		return "CMD_SET_CONSTANT";
+	if (c == CMD_SET_ID)
+		return "CMD_SET_ID";
 	if (c == CMD_SET_SHADER)
 		return "CMD_SET_SHADER";
 	if (c == CMD_CLEAR)

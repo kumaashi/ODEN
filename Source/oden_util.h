@@ -35,6 +35,7 @@ void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name);
 void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name);
 void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name);
 void SetConstant(std::vector<cmd> & vcmd, std::string name, int slot, void *data, size_t size);
+void SetId(std::vector<cmd> & vcmd, std::string name, uint32_t id);
 void SetIndex(std::vector<cmd> & vcmd, std::string name, void *data, size_t size);
 void SetRenderTarget(std::vector<cmd> & vcmd, std::string name, int w, int h, bool is_backbuffer = false);
 void SetShader(std::vector<cmd> & vcmd, std::string name, bool is_update, bool is_cull = false, bool is_enable_depth = false);
