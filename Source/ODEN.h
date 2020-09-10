@@ -112,14 +112,16 @@ struct cmd {
 			float value;
 		} clear_depth;
 
+		struct draw_t {
+			int iid;
+			int vertex_count;
+		} draw;
+
 		struct draw_index_t {
+			int iid;
 			int start;
 			int count;
 		} draw_index;
-
-		struct draw_t {
-			int vertex_count;
-		} draw;
 
 		struct dispatch_t {
 			int x, y, z;

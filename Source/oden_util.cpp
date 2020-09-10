@@ -195,23 +195,25 @@ void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name,
 }
 
 void DrawIndex(std::vector<cmd> & vcmd, std::string name,
-	int start, int count)
+	int start, int count, uint32_t instance_id)
 {
 	cmd c = {};
 	c.type = CMD_DRAW_INDEX;
 	c.name = name;
 	c.draw_index.start = start;
 	c.draw_index.count = count;
+	c.draw_index.iid = instance_id;
 	vcmd.push_back(c);
 }
 
 void Draw(std::vector<cmd> & vcmd, std::string name,
-	int vertex_count)
+	int vertex_count, uint32_t instance_id)
 {
 	cmd c = {};
 	c.type = CMD_DRAW;
 	c.name = name;
 	c.draw.vertex_count = vertex_count;
+	c.draw.iid = instance_id;
 	vcmd.push_back(c);
 }
 

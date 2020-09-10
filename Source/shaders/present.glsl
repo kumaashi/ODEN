@@ -22,15 +22,15 @@
  */
 #version 450 core
 
-layout(binding=0) uniform sampler2D tex0;
-layout(binding=3) uniform sampler2D tex1;
-layout(binding=1) uniform buf {
+layout(set=0, binding=1) uniform sampler2D tex0;
+layout(set=0, binding=3) uniform sampler2D tex1;
+layout(set=1, binding=0) uniform buf {
 	vec4 time;
 	vec4 misc;
 	mat4 world;
 	mat4 proj;
 	mat4 view;
-} ubuf;
+} ubufs[8192];
 
 #ifdef _VS_
 layout(location=0) in vec4 position;

@@ -23,9 +23,8 @@
 
 #version 450
 
-layout(binding = 2, rgba8) uniform image2D tex0;
-layout(binding = 5, rgba8) uniform image2D tex1;
-
+layout(set=2, binding=0, rgba16) uniform image2D tex0;
+layout(set=2, binding=1, rgba16) uniform image2D tex1;
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {

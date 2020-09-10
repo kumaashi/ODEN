@@ -31,8 +31,6 @@ void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name, float val
 void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name, float col[4]);
 void DebugPrint(std::vector<cmd> & vcmd);
 void Dispatch(std::vector<cmd> & vcmd, std::string name, int x, int y, int z);
-void Draw(std::vector<cmd> & vcmd, std::string name, int vertex_count);
-void DrawIndex(std::vector<cmd> & vcmd, std::string name, int start, int count);
 void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name);
 void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name);
 void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name);
@@ -43,5 +41,7 @@ void SetShader(std::vector<cmd> & vcmd, std::string name, bool is_update, bool i
 void SetTexture(std::vector<cmd> & vcmd, std::string name, int slot, int w = 0, int h = 0, void *data = nullptr, size_t size = 0, size_t stride_size = 0);
 void SetTextureUav(std::vector<cmd> & vcmd, std::string name, int slot, int w = 0, int h = 0, int miplevel = 0, void *data = nullptr, size_t size = 0, size_t stride_size = 0);
 void SetVertex(std::vector<cmd> & vcmd, std::string name, void *data, size_t size, size_t stride_size);
+void Draw(std::vector<cmd> & vcmd, std::string name, int vertex_count, uint32_t instanceid = 0);
+void DrawIndex(std::vector<cmd> & vcmd, std::string name, int start, int count, uint32_t instanceid = 0);
 
 };

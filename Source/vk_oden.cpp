@@ -42,7 +42,7 @@
 
 #pragma comment(lib, "vulkan-1.lib")
 
-//#define ODEN_VK_DEBUG_MODE
+#define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
@@ -544,15 +544,16 @@ create_descriptor_set_layout(
 [[ nodiscard ]] static VkPipelineLayout
 create_pipeline_layout(
 	VkDevice device,
-	VkDescriptorSetLayout descriptor_layout)
+	VkDescriptorSetLayout *descriptor_layouts,
+	size_t count)
 {
 	VkPipelineLayout ret = nullptr;
 	VkPipelineLayoutCreateInfo info = {};
 
 	info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	info.pNext = NULL;
-	info.setLayoutCount = 1;
-	info.pSetLayouts = &descriptor_layout;
+	info.setLayoutCount = count;
+	info.pSetLayouts = descriptor_layouts;
 	auto err = vkCreatePipelineLayout(device, &info, NULL, &ret);
 	return (ret);
 }
@@ -817,7 +818,10 @@ oden::oden_present_graphics(
 		uint64_t value = 0;
 		VkCommandBuffer cmdbuf = VK_NULL_HANDLE;
 		VkFence fence = VK_NULL_HANDLE;
-		VkFramebuffer framebuffer = VK_NULL_HANDLE;
+
+		VkDescriptorSet descriptor_set_srv = VK_NULL_HANDLE;
+		VkDescriptorSet descriptor_set_cbv = VK_NULL_HANDLE;
+		VkDescriptorSet descriptor_set_uav = VK_NULL_HANDLE;
 
 		std::vector<VkBuffer> vscratch_buffers;
 		std::vector<VkDeviceMemory> vscratch_devmems;
@@ -833,7 +837,7 @@ oden::oden_present_graphics(
 	static VkSampler sampler_nearest = VK_NULL_HANDLE;
 	static VkSampler sampler_linear = VK_NULL_HANDLE;
 	static VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-	static VkDescriptorSetLayout descriptor_layout = VK_NULL_HANDLE;
+	static std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 	static VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 	static VkPhysicalDeviceMemoryProperties devicememoryprop = {};
 
@@ -855,14 +859,13 @@ oden::oden_present_graphics(
 
 	static std::vector<DeviceBuffer> devicebuffer;
 	static std::vector<VkDescriptorSet> vdescriptor_sets;
+	static VkPhysicalDeviceProperties gpu_props = {};
 
 	struct selected_handle {
 		std::string renderpass_name;
 		VkRenderPassBeginInfo info;
 		VkRenderPass renderpass;
 		VkRenderPass renderpass_commited;
-
-		VkDescriptorSet descriptor_sets;
 	};
 	selected_handle rec = {};
 
@@ -918,7 +921,6 @@ oden::oden_present_graphics(
 		std::vector<const char *> ext_names;
 		VkDebugReportCallbackCreateInfoEXT drcc_info = {};
 		VkInstanceCreateInfo inst_info = {};
-		VkPhysicalDeviceProperties gpu_props = {};
 		VkPhysicalDeviceFeatures physDevFeatures = {};
 
 		//Is supported vk?
@@ -1113,6 +1115,28 @@ oden::oden_present_graphics(
 			}
 		}
 
+		//precreate resources
+		sampler_nearest = create_sampler(device, false);
+		sampler_linear = create_sampler(device, true);
+		descriptor_pool = create_descriptor_pool(device, count * RDT_SLOT_MAX);
+
+		{
+			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_srv;
+			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_cbv;
+			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_uav;
+			for (int i = 0  ; i < slotmax; i++)
+			{
+				vdesc_setlayout_binding_srv.push_back({(uint32_t)i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
+				vdesc_setlayout_binding_cbv.push_back({(uint32_t)i, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
+				vdesc_setlayout_binding_uav.push_back({(uint32_t)i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
+			}
+			vdescriptor_layouts.resize(RDT_SLOT_MAX);
+			vdescriptor_layouts[RDT_SLOT_SRV] = create_descriptor_set_layout(device, vdesc_setlayout_binding_srv);
+			vdescriptor_layouts[RDT_SLOT_CBV] = create_descriptor_set_layout(device, vdesc_setlayout_binding_cbv);
+			vdescriptor_layouts[RDT_SLOT_UAV] = create_descriptor_set_layout(device, vdesc_setlayout_binding_uav);
+			pipeline_layout = create_pipeline_layout(device, vdescriptor_layouts.data(), vdescriptor_layouts.size());
+		}
+
 		//Create CommandBuffers
 		cmd_pool = create_command_pool(device, graphics_queue_family_index);
 
@@ -1124,27 +1148,13 @@ oden::oden_present_graphics(
 			ref.cmdbuf = create_command_buffer(device, cmd_pool);
 			ref.fence = create_fence(device);
 			vkResetFences(device, 1, &ref.fence);
+			ref.descriptor_set_srv = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_SRV]);
+			ref.descriptor_set_cbv = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_CBV]);
+			ref.descriptor_set_uav = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_UAV]);
 
 			LOG_MAIN("backbuffer cmdbuf[%d] = %p\n", i, ref.cmdbuf);
 			LOG_MAIN("backbuffer fence[%d] = %p\n", i, ref.fence);
 		}
-		sampler_nearest = create_sampler(device, false);
-		sampler_linear = create_sampler(device, true);
-		descriptor_pool = create_descriptor_pool(device, heapcount);
-
-		{
-			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding;
-			for (int i = 0  ; i < slotmax; i++) {
-				vdesc_setlayout_binding.push_back({(uint32_t)RDT_SLOT_SRV + i * RDT_SLOT_MAX, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
-				vdesc_setlayout_binding.push_back({(uint32_t)RDT_SLOT_CBV + i * RDT_SLOT_MAX, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
-				vdesc_setlayout_binding.push_back({(uint32_t)RDT_SLOT_UAV + i * RDT_SLOT_MAX, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
-			}
-			descriptor_layout = create_descriptor_set_layout(device, vdesc_setlayout_binding);
-			pipeline_layout = create_pipeline_layout(device, descriptor_layout);
-		}
-
-		for (int i = 0; i < 4096; i++)
-			vdescriptor_sets.push_back(create_descriptor_set(device, descriptor_pool, descriptor_layout));
 
 		LOG_MAIN("VkInstance inst = %p\n", inst);
 		LOG_MAIN("VkPhysicalDevice gpudev = %p\n", gpudev);
@@ -1154,7 +1164,6 @@ oden::oden_present_graphics(
 		LOG_MAIN("VkSwapchainKHR swapchain = %p\n", swapchain);
 		LOG_MAIN("vkCreateCommandPool cmd_pool = %p\n", cmd_pool);
 		LOG_MAIN("vkCreateDescriptorPool descriptor_pool = %p\n", descriptor_pool);
-		LOG_MAIN("vkCreateDescriptorSetLayout layout = %p\n", descriptor_layout);
 		LOG_MAIN("vkCreatePipelineLayout = %p\n", pipeline_layout);
 	}
 
@@ -1212,21 +1221,29 @@ oden::oden_present_graphics(
 		return;
 	}
 
-	//Begin
-	VkCommandBufferBeginInfo cmdbegininfo = {};
-	cmdbegininfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	cmdbegininfo.pNext = nullptr;
-	cmdbegininfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-	cmdbegininfo.pInheritanceInfo = nullptr;
 
-	vkResetCommandBuffer(ref.cmdbuf, 0);
-	vkBeginCommandBuffer(ref.cmdbuf, &cmdbegininfo);
+	auto get_aligned_offset = [=](size_t offset) {
+		auto align = gpu_props.limits.minUniformBufferOffsetAlignment;
+		auto ret = offset;
+		ret = ret + (align - 1);
+		ret &= ~(align - 1);
+		return ret;
+	};
 
-	LOG_MAIN("vcmd.size=%lu\n", vcmd.size());
+	auto get_image_memory_requirements = [](auto device, auto image) {
+		VkMemoryRequirements memreqs = {};
+		vkGetImageMemoryRequirements(device, image, &memreqs);
+		memreqs.size = memreqs.size + (memreqs.alignment - 1);
+		memreqs.size &= ~(memreqs.alignment - 1);
+		return memreqs;
+	};
 
-	auto scratch_descriptor_sets = [&]() {
-		rec.descriptor_sets = alloc_descriptor_sets();
-		return rec.descriptor_sets;
+	auto get_buffer_memory_requirements = [](auto device, auto buffer) {
+		VkMemoryRequirements memreqs = {};
+		vkGetBufferMemoryRequirements(device, buffer, &memreqs);
+		memreqs.size = memreqs.size + (memreqs.alignment - 1);
+		memreqs.size &= ~(memreqs.alignment - 1);
+		return memreqs;
 	};
 
 	auto setup_renderpass = [&](auto name, auto info, auto renderpass) {
@@ -1254,29 +1271,425 @@ oden::oden_present_graphics(
 		}
 	};
 
-	//update shaders
-	static bool is_lazy_shader_update = false;
-	if (is_lazy_shader_update) {
-		//lazy
-		vkDeviceWaitIdle(device);
-		mpipeline_bindpoints.clear();
-		for (auto & x : mpipelines)
-			vkDestroyPipeline(device, x.second, nullptr);
-		mpipelines.clear();
-		is_lazy_shader_update = false;
-	}
-
 	//Proc command.
 	int cmd_index = 0;
+	auto descriptor_set_srv = ref.descriptor_set_srv;
+	auto descriptor_set_cbv = ref.descriptor_set_cbv;
+	auto descriptor_set_uav = ref.descriptor_set_uav;
+
+	//Begin
+	VkCommandBufferBeginInfo cmdbegininfo = {};
+	cmdbegininfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	cmdbegininfo.pNext = nullptr;
+	cmdbegininfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	cmdbegininfo.pInheritanceInfo = nullptr;
+
+	vkResetCommandBuffer(ref.cmdbuf, 0);
+	vkBeginCommandBuffer(ref.cmdbuf, &cmdbegininfo);
+
+	//Filter Phase
+	VkRenderPass selected_renderpass = nullptr;
+	LOG_MAIN("vcmd.size=%lu\n", vcmd.size());
 	for (auto & c : vcmd) {
 		auto type = c.type;
 		auto name = c.name;
 		LOG_MAIN("cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
 
-		//allocate descriptor_sets.
-		if (rec.descriptor_sets == nullptr)
-			scratch_descriptor_sets();
-		auto descriptor_sets = rec.descriptor_sets;
+		if (type == CMD_SET_BARRIER) {
+			//Nothing todo.
+		}
+
+		//CMD_SET_RENDER_TARGET
+		if (type == CMD_SET_RENDER_TARGET) {
+			auto x = c.set_render_target.rect.x;
+			auto y = c.set_render_target.rect.y;
+			auto w = c.set_render_target.rect.w;
+			auto h = c.set_render_target.rect.h;
+			bool is_backbuffer = c.set_render_target.is_backbuffer;
+
+			//COLOR
+			auto name_color = name;
+			auto image_color = mimages[name_color];
+			auto fmt_color = VK_FORMAT_R16G16B16A16_SFLOAT;
+			if (is_backbuffer == true)
+				fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
+			int maxmips = oden_get_mipmap_max(w, h);
+
+			if (maxmips == 0)
+				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", w, h, name.c_str());
+			if (image_color == nullptr) {
+				image_color = create_image(device, w, h, fmt_color,
+						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+						VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+						VK_IMAGE_USAGE_STORAGE_BIT |
+						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips);
+				mimages[name_color] = image_color;
+				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
+			}
+
+			//allocate color memreq and Bind
+			if (mmemreqs.count(name_color) == 0) {
+				auto memreqs = get_image_memory_requirements(device, image_color);
+				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, maxmips);
+				VkDeviceMemory devmem = alloc_devmem(name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				vkBindImageMemory(device, image_color, devmem, 0);
+				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+
+				mmemreqs[name_color] = memreqs;
+			}
+
+			//COLOR VIEW
+			auto imageview_color = mimageviews[name_color];
+			if (imageview_color == nullptr) {
+				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
+				imageview_color = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT);
+				mimageviews[name_color] = imageview_color;
+				LOG_MAIN("create_image_view imageview_color=0x%p\n", imageview_color);
+				if (is_backbuffer == false) {
+					for (int i = 0 ; i < maxmips; i++) {
+						auto imageview_color_mip = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT, i);
+						auto name_color_mip = oden_get_mipmap_name(name_color, i);
+						mimageviews[name_color_mip] = imageview_color_mip;
+						LOG_MAIN("create_image_view name=%s, imageview_color_mip=0x%p\n",
+							name_color_mip.c_str(), imageview_color_mip);
+					}
+				}
+			}
+
+			//DEPTH
+			auto name_depth = oden_get_depth_render_target_name(name);
+			auto image_depth = mimages[name_depth];
+			auto fmt_depth = VK_FORMAT_D32_SFLOAT;
+			if (image_depth == nullptr) {
+				image_depth = create_image(device, w, h, fmt_depth, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1);
+				mimages[name_depth] = image_depth;
+			}
+
+			//allocate depth memreq and Bind
+			if (mmemreqs.count(name_depth) == 0) {
+				auto memreqs = get_image_memory_requirements(device, image_depth);
+				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+				VkDeviceMemory devmem = alloc_devmem(name_depth, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				vkBindImageMemory(device, image_depth, devmem, 0);
+				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+
+				mmemreqs[name_depth] = memreqs;
+			}
+
+			//DEPTH VIEW
+			auto imageview_depth = mimageviews[name_depth];
+			if (imageview_depth == nullptr) {
+				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
+				imageview_depth = create_image_view(device, image_depth, fmt_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
+				mimageviews[name_depth] = imageview_depth;
+				LOG_MAIN("create_image_view imageview_depth=0x%p\n", imageview_depth);
+			}
+
+			//RENDER PASS
+			auto renderpass = mrenderpasses[name];
+			LOG_MAIN("query renderpass name=%s\n", name.c_str());
+			if (renderpass == nullptr) {
+				renderpass = create_renderpass(device, 1, is_backbuffer, fmt_color, fmt_depth);
+				LOG_MAIN("create_renderpass name=%s, ptr=%p\n", name_color.c_str(), renderpass);
+				mrenderpasses[name] = renderpass;
+			}
+			selected_renderpass = renderpass;
+
+			//FRAMEBUFFER
+			auto framebuffer = mframebuffers[name];
+			if (framebuffer == nullptr && renderpass) {
+				std::vector<VkImageView> imageviews;
+				imageviews.push_back(imageview_color);
+				imageviews.push_back(imageview_depth);
+				framebuffer = create_framebuffer(device, renderpass, imageviews, w, h);
+				mframebuffers[name] = framebuffer;
+				LOG_MAIN("create_framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
+			}
+			LOG_MAIN("found renderpass name=%s, ptr=%p\n", name_color.c_str(), renderpass);
+			LOG_MAIN("found framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
+		}
+
+		//CMD_SET_TEXTURE
+		if (type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
+			uint32_t w = c.set_texture.rect.w;
+			uint32_t h = c.set_texture.rect.h;
+			auto slot = c.set_texture.slot;
+			LOG_MAIN("DEBUG : name=%s, c.set_texture.miplevel=%d\n", name.c_str(), c.set_texture.miplevel);
+
+			//prepare for context roll.
+			if (rec.renderpass_commited)
+				end_renderpass();
+
+			//COLOR
+			auto name_color = name;
+			auto fmt_color = VK_FORMAT_R8G8B8A8_UNORM;
+			auto image_color = mimages[name_color];
+			if (image_color == nullptr) {
+				image_color = create_image(device, w, h, fmt_color,
+					VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+					VK_IMAGE_USAGE_STORAGE_BIT |
+					VK_IMAGE_USAGE_SAMPLED_BIT, 1);
+				mimages[name_color] = image_color;
+				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
+			}
+
+			//allocate color memreq and Bind
+			if (mmemreqs.count(name_color) == 0) {
+				auto data = c.buf.data();
+				auto size = c.buf.size();
+				auto memreqs = get_image_memory_requirements(device, image_color);
+				auto devmem = alloc_devmem(name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				vkBindImageMemory(device, image_color, devmem, 0);
+
+				auto before_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+				auto after_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+				auto scratch_buffer = create_buffer(device, size);
+				auto memreqs_buffer = get_buffer_memory_requirements(device, scratch_buffer);
+				ref.vscratch_buffers.push_back(scratch_buffer);
+				LOG_MAIN("create_buffer-staging name=%s\n", name.c_str());
+
+				{
+					auto devmem = alloc_devmem(std::string(name) + "_staging", memreqs_buffer.size,
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false);
+					ref.vscratch_devmems.push_back(devmem);
+					vkBindBufferMemory(device, scratch_buffer, devmem, 0);
+					void *dest = nullptr;
+					vkMapMemory(device, devmem, 0, memreqs_buffer.size, 0, (void **)&dest);
+					if (dest) {
+						LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+						memcpy(dest, data, size);
+						vkUnmapMemory(device, devmem);
+					} else {
+						LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+						Sleep(1000);
+					}
+
+					VkBufferImageCopy copy_region = {};
+					copy_region.bufferOffset = 0;
+					copy_region.bufferRowLength = w;
+					copy_region.bufferImageHeight = h;
+					copy_region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+					copy_region.imageOffset = {0, 0, 0};
+					copy_region.imageExtent = {w, h, 1};
+
+					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &before_barrier);
+					vkCmdCopyBufferToImage(ref.cmdbuf, scratch_buffer, image_color, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &after_barrier);
+				}
+
+				mmemreqs[name_color] = memreqs;
+			}
+
+			//COLOR VIEW
+			auto imageview_color = mimageviews[name_color];
+			if (imageview_color == nullptr) {
+				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
+				imageview_color = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT);
+				mimageviews[name_color] = imageview_color;
+				LOG_MAIN("create_image_view imageview_color=0x%p\n", imageview_color);
+			}
+
+			if (type == CMD_SET_TEXTURE) {
+				auto binding = slot;
+				VkDescriptorImageInfo image_info = {};
+				image_info.sampler = sampler_linear;
+				image_info.imageView = imageview_color;
+				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s binding=%d\n", name.c_str(), binding);
+				update_descriptor_sets(device, descriptor_set_srv, &image_info, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+			}
+
+			if (type == CMD_SET_TEXTURE_UAV) {
+				auto miplevel = c.set_texture.miplevel;
+				auto name_color_mip = oden_get_mipmap_name(name_color, miplevel);
+				imageview_color = mimageviews[name_color_mip];
+				auto binding = slot;
+				VkDescriptorImageInfo image_info = {};
+				image_info.sampler = sampler_linear;
+				image_info.imageView = imageview_color;
+				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				update_descriptor_sets(device, descriptor_set_uav, &image_info, binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+				LOG_MAIN("vkUpdateDescriptorSets(compute image) imageview_color=%p, start name=%s binding=%d\n", imageview_color, name_color_mip.c_str(), binding);
+			}
+		}
+
+		//CMD_SET_CONSTANT
+		if (type == CMD_SET_CONSTANT) {
+			auto slot = c.set_constant.slot;
+			auto data = c.buf.data();
+			auto size = get_aligned_offset(c.buf.size());
+			auto start_offset = get_aligned_offset(size * slot);
+
+			auto buffer = mbuffers[name];
+			if (buffer == nullptr) {
+				LOG_MAIN("create_buffer-constant name=%s\n", name.c_str());
+				buffer = create_buffer(device, size * heapcount);
+				mbuffers[name] = buffer;
+				LOG_MAIN("create_buffer-constant name=%s Done\n", name.c_str());
+			}
+
+			//allocate buffer memreq and Bind
+			auto devmem = mdevmem[name];
+			if (devmem == nullptr) {
+				auto memreqs = get_buffer_memory_requirements(device, buffer);
+				mmemreqs[name] = memreqs;
+				devmem = alloc_devmem(name, memreqs.size,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vkBindBufferMemory(device, buffer, devmem, 0);
+				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
+			}
+
+			//update
+			void *dest = nullptr;
+			vkMapMemory(device, devmem, start_offset, size, 0, (void **)&dest);
+			if (dest) {
+				LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+				memcpy(dest, data, size);
+				vkUnmapMemory(device, devmem);
+			} else {
+				LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+				Sleep(1000);
+			}
+
+			//update buffer reference
+			auto binding = slot;
+			VkDescriptorBufferInfo buffer_info = {};
+			buffer_info.buffer = buffer;
+			buffer_info.offset = start_offset;
+			buffer_info.range = size;
+
+			update_descriptor_sets(device, descriptor_set_cbv, &buffer_info, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			LOG_MAIN("vkUpdateDescriptorSets start name=%s binding=%d\n", name.c_str(), binding);
+		}
+
+		//CMD_SET_VERTEX
+		if (type == CMD_SET_VERTEX) {
+			auto buffer = mbuffers[name];
+			auto data = c.buf.data();
+			auto size = c.buf.size();
+			if (buffer == nullptr) {
+				LOG_MAIN("create_buffer-vertex name=%s\n", name.c_str());
+				buffer = create_buffer(device, size);
+				mbuffers[name] = buffer;
+				LOG_MAIN("create_buffer-vertex name=%s Done\n", name.c_str());
+			}
+
+			//allocate buffer memreq and Bind
+			if (mmemreqs.count(name) == 0) {
+				auto memreqs = get_buffer_memory_requirements(device, buffer);
+				mmemreqs[name] = memreqs;
+				auto devmem = alloc_devmem(name, memreqs.size,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vkBindBufferMemory(device, buffer, devmem, 0);
+				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
+
+				void *dest = nullptr;
+				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
+				if (dest) {
+					LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+					memcpy(dest, data, size);
+					vkUnmapMemory(device, devmem);
+				} else {
+					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+					Sleep(1000);
+				}
+			}
+		}
+
+		//CMD_SET_INDEX
+		if (type == CMD_SET_INDEX) {
+			auto buffer = mbuffers[name];
+			auto data = c.buf.data();
+			auto size = c.buf.size();
+			if (buffer == nullptr) {
+				LOG_MAIN("create_buffer-index name=%s\n", name.c_str());
+				buffer = create_buffer(device, size);
+				mbuffers[name] = buffer;
+				LOG_MAIN("create_buffer-index name=%s Done\n", name.c_str());
+			}
+
+			//allocate buffer memreq and Bind
+			if (mmemreqs.count(name) == 0) {
+				auto memreqs = get_buffer_memory_requirements(device, buffer);
+				mmemreqs[name] = memreqs;
+				auto devmem = alloc_devmem(name, memreqs.size,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+				vkBindBufferMemory(device, buffer, devmem, 0);
+				LOG_MAIN("vkBindBufferMemory index name=%s Done\n", name.c_str());
+
+				void *dest = nullptr;
+				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
+				if (dest) {
+					LOG_MAIN("vkMapMemory index name=%s addr=0x%p\n", name.c_str(), dest);
+					memcpy(dest, data, size);
+					vkUnmapMemory(device, devmem);
+				} else {
+					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
+					Sleep(1000);
+				}
+			}
+		}
+
+		//CMD_SET_SHADER
+		if (type == CMD_SET_SHADER) {
+			auto binding_point = mpipeline_bindpoints[name];
+			auto pipeline = mpipelines[name];
+			if (c.set_shader.is_update) {
+				mpipeline_bindpoints.erase(name);
+				if (pipeline)
+					vkDestroyPipeline(device, pipeline, nullptr);
+				mpipelines.erase(name);
+				pipeline = nullptr;
+			}
+			if (pipeline == nullptr) {
+				pipeline = create_gpipeline_from_file(device, name.c_str(), pipeline_layout, selected_renderpass);
+				if (pipeline) {
+					mpipelines[name] = pipeline;
+					mpipeline_bindpoints[name] = VK_PIPELINE_BIND_POINT_GRAPHICS;
+					binding_point = mpipeline_bindpoints[name];
+				}
+			}
+
+			if (pipeline == nullptr) {
+				pipeline = create_cpipeline_from_file(device, name.c_str(), pipeline_layout);
+				if (pipeline) {
+					mpipelines[name] = pipeline;
+					mpipeline_bindpoints[name] = VK_PIPELINE_BIND_POINT_COMPUTE;
+					binding_point = mpipeline_bindpoints[name];
+				}
+			}
+		}
+
+		//ignore update phase.
+		if (type == CMD_CLEAR) {}
+		if (type == CMD_CLEAR_DEPTH) {}
+		if (type == CMD_DRAW_INDEX) {}
+		if (type == CMD_DRAW) {}
+		if (type == CMD_DISPATCH) {}
+	}
+
+
+	printf("=========================================================================================\n");
+	printf(" START Batch Commands\n");
+	printf("=========================================================================================\n");
+	//Cmd Phase
+	std::vector<VkDescriptorSet> vdescriptor_sets_graphics = {
+		descriptor_set_srv,
+		descriptor_set_cbv,
+		descriptor_set_uav,
+	};
+	std::vector<VkDescriptorSet> vdescriptor_sets_compute = {
+		descriptor_set_srv,
+		descriptor_set_cbv,
+		descriptor_set_uav,
+	};
+	vkCmdBindDescriptorSets(ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, vdescriptor_sets_graphics.size(), vdescriptor_sets_graphics.data(), 0, NULL);
+	vkCmdBindDescriptorSets(ref.cmdbuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0, vdescriptor_sets_compute.size(), vdescriptor_sets_compute.data(), 0, NULL);
+	for (auto & c : vcmd) {
+		auto type = c.type;
+		auto name = c.name;
+		LOG_MAIN("cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
 
 		if (type == CMD_SET_BARRIER) {
 			LOG_MAIN("SET BARRIER name=%s\n", name.c_str());
@@ -1328,137 +1741,25 @@ oden::oden_present_graphics(
 
 			//COLOR
 			auto name_color = name;
+			auto name_depth = oden_get_depth_render_target_name(name);
 			auto image_color = mimages[name_color];
+			auto image_depth = mimages[name_depth];
+			auto imageview_color = mimageviews[name_color];
+			auto imageview_depth = mimageviews[name_depth];
 			auto fmt_color = VK_FORMAT_R16G16B16A16_SFLOAT;
+			auto fmt_depth = VK_FORMAT_D32_SFLOAT;
+			auto renderpass = mrenderpasses[name];
+			auto framebuffer = mframebuffers[name];
 			if (is_backbuffer == true)
 				fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
 			int maxmips = oden_get_mipmap_max(w, h);
 
 			//prepare for context roll.
-			if (rec.renderpass_commited) {
+			if (rec.renderpass_commited)
 				end_renderpass();
-				descriptor_sets = scratch_descriptor_sets();
-			}
 
 			if (maxmips == 0)
 				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", w, h, name.c_str());
-			if (image_color == nullptr) {
-				image_color = create_image(device, w, h, fmt_color,
-						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-						VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-						VK_IMAGE_USAGE_STORAGE_BIT |
-						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips);
-				mimages[name_color] = image_color;
-				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
-			}
-
-			//allocate color memreq and Bind
-			if (mmemreqs.count(name_color) == 0) {
-				VkMemoryRequirements memreqs = {};
-
-				vkGetImageMemoryRequirements(device, image_color, &memreqs);
-				memreqs.size = memreqs.size + (memreqs.alignment - 1);
-				memreqs.size &= ~(memreqs.alignment - 1);
-				mmemreqs[name_color] = memreqs;
-
-				VkDeviceMemory devmem = alloc_devmem(
-						name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				vkBindImageMemory(device, image_color, devmem, 0);
-
-				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, maxmips);
-				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-			}
-
-			//COLOR VIEW
-			auto imageview_color = mimageviews[name_color];
-			if (imageview_color == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
-				imageview_color = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT);
-				mimageviews[name_color] = imageview_color;
-				LOG_MAIN("create_image_view imageview_color=0x%p\n", imageview_color);
-				if (is_backbuffer == false) {
-					for (int i = 0 ; i < maxmips; i++) {
-						auto imageview_color_mip = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT, i);
-						auto name_color_mip = oden_get_mipmap_name(name_color, i);
-						mimageviews[name_color_mip] = imageview_color_mip;
-						LOG_MAIN("create_image_view name=%s, imageview_color_mip=0x%p\n",
-							name_color_mip.c_str(), imageview_color_mip);
-					}
-					VkImageSubresourceRange image_range_color = {};
-					image_range_color.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-					image_range_color.baseMipLevel = 0;
-					image_range_color.levelCount = maxmips;
-					image_range_color.baseArrayLayer = 0;
-					image_range_color.layerCount = 1;
-
-					VkClearColorValue clearColor = {};
-					clearColor.float32[0] = c.clear.color[0];
-					clearColor.float32[1] = c.clear.color[1];
-					clearColor.float32[2] = c.clear.color[2];
-					clearColor.float32[3] = c.clear.color[3];
-					vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
-				}
-			}
-
-			//DEPTH
-			auto name_depth = oden_get_depth_render_target_name(name);
-			auto image_depth = mimages[name_depth];
-			auto fmt_depth = VK_FORMAT_D32_SFLOAT;
-			if (image_depth == nullptr) {
-				image_depth = create_image(device, w, h, fmt_depth,
-						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1);
-				mimages[name_depth] = image_depth;
-
-				LOG_MAIN("create_image name_depth=%s, image_depth=0x%p\n", name_depth.c_str(), image_depth);
-			}
-
-			//allocate depth memreq and Bind
-			if (mmemreqs.count(name_depth) == 0) {
-				VkMemoryRequirements memreqs = {};
-
-				vkGetImageMemoryRequirements(device, image_depth, &memreqs);
-				memreqs.size = memreqs.size + (memreqs.alignment - 1);
-				memreqs.size &= ~(memreqs.alignment - 1);
-				mmemreqs[name_depth] = memreqs;
-				VkDeviceMemory devmem = alloc_devmem(
-						name_depth, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				vkBindImageMemory(device, image_depth, devmem, 0);
-
-				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-			}
-
-			//DEPTH VIEW
-			auto imageview_depth = mimageviews[name_depth];
-			if (imageview_depth == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
-				imageview_depth = create_image_view(device, image_depth, fmt_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
-				mimageviews[name_depth] = imageview_depth;
-				LOG_MAIN("create_image_view imageview_depth=0x%p\n", imageview_depth);
-			}
-
-			//RENDER PASS
-			auto renderpass = mrenderpasses[name];
-			LOG_MAIN("query renderpass name=%s\n", name.c_str());
-			if (renderpass == nullptr) {
-				renderpass = create_renderpass(device, 1, is_backbuffer, fmt_color, fmt_depth);
-				LOG_MAIN("create_renderpass name=%s, ptr=%p\n", name_color.c_str(), renderpass);
-				mrenderpasses[name] = renderpass;
-			}
-
-			//FRAMEBUFFER
-			auto framebuffer = mframebuffers[name];
-			if (framebuffer == nullptr && renderpass) {
-				std::vector<VkImageView> imageviews;
-				imageviews.push_back(imageview_color);
-				imageviews.push_back(imageview_depth);
-
-				framebuffer = create_framebuffer(device, renderpass, imageviews, w, h);
-				LOG_MAIN("create_framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
-				mframebuffers[name] = framebuffer;
-			}
-			LOG_MAIN("found renderpass name=%s, ptr=%p\n", name_color.c_str(), renderpass);
-			LOG_MAIN("found framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
 
 			//setup viewport and scissor
 			VkViewport viewport = {};
@@ -1491,222 +1792,16 @@ oden::oden_present_graphics(
 
 		//CMD_SET_TEXTURE
 		if (type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
-			uint32_t w = c.set_texture.rect.w;
-			uint32_t h = c.set_texture.rect.h;
-			auto slot = c.set_texture.slot;
-			LOG_MAIN("DEBUG : name=%s, c.set_texture.miplevel=%d\n", name.c_str(), c.set_texture.miplevel);
-
-			//prepare for context roll.
-			if (rec.renderpass_commited)
-				end_renderpass();
-
-			if (rec.descriptor_sets == nullptr)
-				descriptor_sets = scratch_descriptor_sets();
-
-			//COLOR
-			auto name_color = name;
-			auto fmt_color = VK_FORMAT_R8G8B8A8_UNORM;
-			auto image_color = mimages[name_color];
-			if (image_color == nullptr) {
-				image_color = create_image(device, w, h, fmt_color,
-						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-						VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-						VK_IMAGE_USAGE_STORAGE_BIT |
-						VK_IMAGE_USAGE_SAMPLED_BIT, 1);
-				mimages[name_color] = image_color;
-				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
-			}
-
-			//allocate color memreq and Bind
-			if (mmemreqs.count(name_color) == 0) {
-				auto data = c.buf.data();
-				auto size = c.buf.size();
-				VkMemoryRequirements memreqs = {};
-
-				vkGetImageMemoryRequirements(device, image_color, &memreqs);
-				memreqs.size = memreqs.size + (memreqs.alignment - 1);
-				memreqs.size &= ~(memreqs.alignment - 1);
-				mmemreqs[name_color] = memreqs;
-
-				VkDeviceMemory devmem = alloc_devmem(
-						name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				vkBindImageMemory(device, image_color, devmem, 0);
-
-				{
-					LOG_MAIN("create_buffer-staging name=%s\n", name.c_str());
-					auto scratch_buffer = create_buffer(device, size);
-					ref.vscratch_buffers.push_back(scratch_buffer);
-
-					LOG_MAIN("create_buffer-staging name=%s Done\n", name.c_str());
-					VkMemoryRequirements memreqs = {};
-					vkGetBufferMemoryRequirements(device, scratch_buffer, &memreqs);
-					memreqs.size = memreqs.size + (memreqs.alignment - 1);
-					memreqs.size &= ~(memreqs.alignment - 1);
-					VkDeviceMemory devmem = alloc_devmem(std::string(name) + "_staging", memreqs.size,
-							VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-							VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false);
-					ref.vscratch_devmems.push_back(devmem);
-					vkBindBufferMemory(device, scratch_buffer, devmem, 0);
-					LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
-					void *dest = nullptr;
-					vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
-					if (dest) {
-						LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-						memcpy(dest, data, size);
-						vkUnmapMemory(device, devmem);
-					} else {
-						LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-						Sleep(1000);
-					}
-
-					auto before_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-					auto after_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
-					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &before_barrier);
-					VkBufferImageCopy copy_region = {};
-					copy_region.bufferOffset = 0;
-					copy_region.bufferRowLength = w;
-					copy_region.bufferImageHeight = h;
-					copy_region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-					copy_region.imageOffset = {0, 0, 0};
-					copy_region.imageExtent = {w, h, 1};
-					vkCmdCopyBufferToImage(ref.cmdbuf, scratch_buffer, image_color, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
-					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &after_barrier);
-				}
-			}
-
-			//COLOR VIEW
-			auto imageview_color = mimageviews[name_color];
-			if (imageview_color == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
-				imageview_color = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT);
-				mimageviews[name_color] = imageview_color;
-				LOG_MAIN("create_image_view imageview_color=0x%p\n", imageview_color);
-			}
-
-			if (descriptor_sets) {
-				if (type == CMD_SET_TEXTURE) {
-					auto binding = (RDT_SLOT_MAX * slot) + RDT_SLOT_SRV;
-					VkDescriptorImageInfo image_info = {};
-					image_info.sampler = sampler_linear;
-					image_info.imageView = imageview_color;
-					image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-					LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s binding=%d\n", name.c_str(), binding);
-					update_descriptor_sets(device, descriptor_sets, &image_info, binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				}
-
-				if (type == CMD_SET_TEXTURE_UAV) {
-					auto miplevel = c.set_texture.miplevel;
-					auto name_color_mip = oden_get_mipmap_name(name_color, miplevel);
-					imageview_color = mimageviews[name_color_mip];
-					auto binding = (RDT_SLOT_MAX * slot) + RDT_SLOT_UAV;
-					VkDescriptorImageInfo image_info = {};
-					image_info.sampler = sampler_linear;
-					image_info.imageView = imageview_color;
-					image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-					update_descriptor_sets(device, descriptor_sets, &image_info, binding, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-					LOG_MAIN("vkUpdateDescriptorSets(compute image) imageview_color=%p, start name=%s binding=%d\n", imageview_color, name_color_mip.c_str(), binding);
-				}
-			} else {
-				LOG_ERR("WARNING name=%s descriptor_sets is null\n", name.c_str());
-				LOG_ERR("You Need prepare binding DS name=%s\n", name.c_str());
-			}
 		}
 
 		//CMD_SET_CONSTANT
 		if (type == CMD_SET_CONSTANT) {
-			auto slot = c.set_constant.slot;
-			auto data = c.buf.data();
-			auto size = c.buf.size();
-			//Create Constant Buffer
-			auto buffer = mbuffers[name];
-			if (buffer == nullptr) {
-				LOG_MAIN("create_buffer-constant name=%s\n", name.c_str());
-				buffer = create_buffer(device, size);
-				mbuffers[name] = buffer;
-				LOG_MAIN("create_buffer-constant name=%s Done\n", name.c_str());
-			}
-
-			//allocate buffer memreq and Bind
-			auto devmem = mdevmem[name];
-			if (devmem == nullptr) {
-				VkMemoryRequirements memreqs = {};
-
-				vkGetBufferMemoryRequirements(device, buffer, &memreqs);
-				memreqs.size = memreqs.size + (memreqs.alignment - 1);
-				memreqs.size &= ~(memreqs.alignment - 1);
-				mmemreqs[name] = memreqs;
-				devmem = alloc_devmem(name, memreqs.size,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-				vkBindBufferMemory(device, buffer, devmem, 0);
-				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
-			}
-
-			//update
-			void *dest = nullptr;
-			vkMapMemory(device, devmem, 0, size, 0, (void **)&dest);
-			if (dest) {
-				LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-				memcpy(dest, data, size);
-				vkUnmapMemory(device, devmem);
-			} else {
-				LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-				Sleep(1000);
-			}
-
-			if (descriptor_sets) {
-				//update buffer reference
-				auto binding = (RDT_SLOT_MAX * slot) + RDT_SLOT_CBV;
-				VkDescriptorBufferInfo buffer_info = {};
-				buffer_info.buffer = buffer;
-				buffer_info.offset = 0;
-				buffer_info.range = size;
-
-				update_descriptor_sets(device, descriptor_sets, &buffer_info, binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-				LOG_MAIN("vkUpdateDescriptorSets start name=%s binding=%d\n", name.c_str(), binding);
-			} else {
-				LOG_ERR("You Need prepare binding DS name=%s\n", name.c_str());
-			}
+			//todo
 		}
 
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
 			auto buffer = mbuffers[name];
-			auto data = c.buf.data();
-			auto size = c.buf.size();
-			if (buffer == nullptr) {
-				LOG_MAIN("create_buffer-vertex name=%s\n", name.c_str());
-				buffer = create_buffer(device, size);
-				mbuffers[name] = buffer;
-				LOG_MAIN("create_buffer-vertex name=%s Done\n", name.c_str());
-			}
-
-			//allocate buffer memreq and Bind
-			if (mmemreqs.count(name) == 0) {
-				VkMemoryRequirements memreqs = {};
-
-				vkGetBufferMemoryRequirements(device, buffer, &memreqs);
-				memreqs.size = memreqs.size + (memreqs.alignment - 1);
-				memreqs.size &= ~(memreqs.alignment - 1);
-				mmemreqs[name] = memreqs;
-				VkDeviceMemory devmem = alloc_devmem(name, memreqs.size,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-				vkBindBufferMemory(device, buffer, devmem, 0);
-				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
-
-				void *dest = nullptr;
-				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
-				if (dest) {
-					LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-					memcpy(dest, data, size);
-					vkUnmapMemory(device, devmem);
-				} else {
-					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-					Sleep(1000);
-				}
-			}
-
 			VkDeviceSize offsets[1] = {0};
 			vkCmdBindVertexBuffers(ref.cmdbuf, 0, 1, &buffer, offsets);
 			LOG_MAIN("vkCmdBindVertexBuffers name=%s\n", name.c_str());
@@ -1715,41 +1810,6 @@ oden::oden_present_graphics(
 		//CMD_SET_INDEX
 		if (type == CMD_SET_INDEX) {
 			auto buffer = mbuffers[name];
-			auto data = c.buf.data();
-			auto size = c.buf.size();
-			if (buffer == nullptr) {
-				LOG_MAIN("create_buffer-index name=%s\n", name.c_str());
-				buffer = create_buffer(device, size);
-				mbuffers[name] = buffer;
-				LOG_MAIN("create_buffer-index name=%s Done\n", name.c_str());
-			}
-
-			//allocate buffer memreq and Bind
-			if (mmemreqs.count(name) == 0) {
-				VkMemoryRequirements memreqs = {};
-
-				vkGetBufferMemoryRequirements(device, buffer, &memreqs);
-				memreqs.size = memreqs.size + (memreqs.alignment - 1);
-				memreqs.size &= ~(memreqs.alignment - 1);
-				mmemreqs[name] = memreqs;
-				VkDeviceMemory devmem = alloc_devmem(name, memreqs.size,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-				vkBindBufferMemory(device, buffer, devmem, 0);
-				LOG_MAIN("vkBindBufferMemory index name=%s Done\n", name.c_str());
-
-				void *dest = nullptr;
-				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
-				if (dest) {
-					LOG_MAIN("vkMapMemory index name=%s addr=0x%p\n", name.c_str(), dest);
-					memcpy(dest, data, size);
-					vkUnmapMemory(device, devmem);
-				} else {
-					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-					Sleep(1000);
-				}
-			}
-
 			VkDeviceSize offset = {};
 			vkCmdBindIndexBuffer(ref.cmdbuf, buffer, offset, VK_INDEX_TYPE_UINT32);
 			LOG_MAIN("vkCmdBindIndexBuffers name=%s\n", name.c_str());
@@ -1757,44 +1817,16 @@ oden::oden_present_graphics(
 
 		//CMD_SET_SHADER
 		if (type == CMD_SET_SHADER) {
-			if (c.set_shader.is_update)
-				is_lazy_shader_update = true;
-
 			auto binding_point = mpipeline_bindpoints[name];
 			auto pipeline = mpipelines[name];
 
 			//prepare for context roll.
-			if (rec.renderpass_commited) {
+			if (rec.renderpass_commited)
 				end_renderpass();
-				descriptor_sets = scratch_descriptor_sets();
-			}
-
-			if (pipeline == nullptr) {
-				pipeline = create_gpipeline_from_file(device, name.c_str(), pipeline_layout, rec.renderpass);
-				if (pipeline) {
-					mpipelines[name] = pipeline;
-					mpipeline_bindpoints[name] = VK_PIPELINE_BIND_POINT_GRAPHICS;
-					binding_point = mpipeline_bindpoints[name];
-				}
-			}
-
-			if (pipeline == nullptr) {
-				pipeline = create_cpipeline_from_file(device, name.c_str(), pipeline_layout);
-				if (pipeline) {
-					mpipelines[name] = pipeline;
-					mpipeline_bindpoints[name] = VK_PIPELINE_BIND_POINT_COMPUTE;
-					binding_point = mpipeline_bindpoints[name];
-				}
-			}
 
 			if (pipeline) {
 				LOG_MAIN("vkCmdBindPipeline\n");
 				vkCmdBindPipeline(ref.cmdbuf, binding_point, pipeline);
-
-				LOG_MAIN("vkCmdBindDescriptorSets descriptor_sets=%p\n", descriptor_sets);
-				vkCmdBindDescriptorSets(
-					ref.cmdbuf, binding_point, pipeline_layout, 0,
-					1, (const VkDescriptorSet *)&descriptor_sets, 0, NULL);
 			} else {
 				LOG_ERR("Failed make pipeline name=%s\n", name.c_str());
 			}
@@ -1804,9 +1836,6 @@ oden::oden_present_graphics(
 		if (type == CMD_CLEAR) {
 			auto name_color = name;
 			auto image_color = mimages[name_color];
-			if (image_color == nullptr)
-				LOG_ERR("NULL image_color name=%s\n", name_color.c_str());
-			LOG_MAIN("vkCmdClearColorImage name=%s\n", name_color.c_str());
 
 			//prepare for context roll.
 			if (rec.renderpass_commited)
@@ -1831,8 +1860,6 @@ oden::oden_present_graphics(
 		if (type == CMD_CLEAR_DEPTH) {
 			auto name_depth = oden_get_depth_render_target_name(name);
 			auto image_depth = mimages[name_depth];
-			if (image_depth == nullptr)
-				LOG_ERR("NULL image_depth name=%s\n", name_depth.c_str());
 
 			//prepare for context roll.
 			if (rec.renderpass_commited)
@@ -1852,33 +1879,23 @@ oden::oden_present_graphics(
 
 		//CMD_DRAW_INDEX
 		if (type == CMD_DRAW_INDEX) {
+			auto iid = c.draw_index.iid;
 			if (!rec.renderpass_commited)
 				begin_renderpass();
-			vkCmdBindDescriptorSets(
-				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
-				1, (const VkDescriptorSet*)&rec.descriptor_sets, 0, NULL);
-			vkCmdDrawIndexed(ref.cmdbuf, c.draw_index.count, 1, 0, 0, 0);
+			vkCmdDrawIndexed(ref.cmdbuf, c.draw_index.count, 1, 0, 0, iid);
 		}
 
 		//CMD_DRAW
 		if (type == CMD_DRAW) {
+			auto iid = c.draw_index.iid;
 			if (!rec.renderpass_commited)
 				begin_renderpass();
-			vkCmdBindDescriptorSets(
-				ref.cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0,
-				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
-			vkCmdDraw(ref.cmdbuf, c.draw.vertex_count, 1, 0, 0);
+			vkCmdDraw(ref.cmdbuf, c.draw.vertex_count, 1, 0, iid);
 		}
 
 		//CMD_DISPATCH
 		if (type == CMD_DISPATCH) {
-			vkCmdBindDescriptorSets(
-				ref.cmdbuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0,
-				1, (const VkDescriptorSet *)&rec.descriptor_sets, 0, NULL);
 			vkCmdDispatch(ref.cmdbuf, c.dispatch.x, c.dispatch.y, c.dispatch.z);
-
-			//discard dispatch desc set and increase.
-			scratch_descriptor_sets();
 		}
 	}
 	if (rec.renderpass_commited)

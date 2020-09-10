@@ -82,8 +82,8 @@ GenerateMipmap(std::vector<oden::cmd> & vcmd, std::string name, int w, int h)
 	SetShader(vcmd, "./shaders/genmipmap", false, false, false);
 	int miplevel = oden_get_mipmap_max(w, h);
 	for (int i = 1; i < miplevel; i++) {
-		SetTextureUav(vcmd, name, 0, 0, 0, i - 1, nullptr, 0);
-		SetTextureUav(vcmd, name, 1, 0, 0, i - 0, nullptr, 0);
+		SetTextureUav(vcmd, name, 0 + (i * 2), 0, 0, i - 1, nullptr, 0);
+		SetTextureUav(vcmd, name, 1 + (i * 2), 0, 0, i - 0, nullptr, 0);
 		Dispatch(vcmd, "mip" + name, (w >> i), (h >> i), 1);
 	}
 }
@@ -99,8 +99,8 @@ int main()
 		BloomHeight = Height >> 2,
 
 		BufferMax = 2,
-		ShaderSlotMax = 8,
 		ResourceMax = 1024,
+		ShaderSlotMax = 1024,
 
 		TextureHeight = 256,
 		TextureWidth = 256,
@@ -170,8 +170,8 @@ int main()
 	};
 	constdata cdata {};
 	constdata cdata2 {};
-	bloominfo binfoX {};
-	bloominfo binfoY {};
+	constdata binfoX {};
+	constdata binfoY {};
 
 	MatrixStack stack;
 	std::vector<cmd> vcmd;
@@ -232,26 +232,26 @@ int main()
 		SetShader(vcmd, "./shaders/clear", is_update, false, false);
 		ClearRenderTarget(vcmd, offscreen_name, clear_color);
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
-		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
 		SetVertex(vcmd, "clear_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "clear_ib", idx_rect, sizeof(idx_rect));
-		DrawIndex(vcmd, "clear_draw", 0, _countof(idx_rect));
+		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
+		DrawIndex(vcmd, "clear_draw", 0, _countof(idx_rect), 0);
 
 		//Draw Cube to offscreenbuffer.
+		cdata.misc.data[0] = 0.0;
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
 		SetShader(vcmd, "./shaders/model", is_update, false, true);
-		cdata.misc.data[0] = 0.0;
-		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
-		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
 		SetIndex(vcmd, "cube_ib", idx_cube, sizeof(idx_cube));
-		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube));
+		SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
+		SetConstant(vcmd, constant_name, 100, &cdata, sizeof(cdata));
+		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube), 100);
 
-		SetShader(vcmd, "./shaders/model", is_update, false, true);
 		cdata.misc.data[0] = 1.0;
-		SetConstant(vcmd, constant_name + "head", 0, &cdata, sizeof(cdata));
+		SetShader(vcmd, "./shaders/model", is_update, false, true);
 		SetTexture(vcmd, tex_name, 0);
-		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube));
+		SetConstant(vcmd, constant_name + "head", 2, &cdata, sizeof(cdata));
+		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube), 2);
 
 		GenerateMipmap(vcmd, offscreen_name, Width, Height);
 
@@ -260,15 +260,15 @@ int main()
 		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
 		ClearRenderTarget(vcmd, bloomscreen_nameX, clear_color);
 		ClearDepthRenderTarget(vcmd, bloomscreen_nameX, 1.0f);
-		SetTexture(vcmd, offscreen_name, 0);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
-		binfoX.direction.x = BloomWidth;
-		binfoX.direction.y = BloomHeight;
-		binfoX.direction.z = 1.0;
-		binfoX.direction.w = 0.0;
-		SetConstant(vcmd, constbloom_name + "X", 0, &binfoX, sizeof(binfoX));
-		DrawIndex(vcmd, "bloomX", 0, _countof(idx_rect));
+		SetTexture(vcmd, offscreen_name, 1);
+		binfoX.misc.x = BloomWidth;
+		binfoX.misc.y = BloomHeight;
+		binfoX.misc.z = 1.0;
+		binfoX.misc.w = 0.0;
+		SetConstant(vcmd, constbloom_name + "X", 3, &binfoX, sizeof(binfoX));
+		DrawIndex(vcmd, "bloomX", 0, _countof(idx_rect), 3);
 		GenerateMipmap(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
 
 		//Create Bloom Y
@@ -276,15 +276,15 @@ int main()
 		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
 		ClearRenderTarget(vcmd, bloomscreen_name, clear_color);
 		ClearDepthRenderTarget(vcmd, bloomscreen_name, 1.0f);
-		SetTexture(vcmd, bloomscreen_nameX, 0);
+		SetTexture(vcmd, bloomscreen_nameX, 2);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
-		binfoY.direction.x = BloomWidth;
-		binfoY.direction.y = BloomHeight;
-		binfoY.direction.z = 0.0;
-		binfoY.direction.w = 1.0;
-		SetConstant(vcmd, constbloom_name + "Y", 0, &binfoY, sizeof(binfoY));
-		DrawIndex(vcmd, "bloomY", 0, _countof(idx_rect));
+		binfoY.misc.x = BloomWidth;
+		binfoY.misc.y = BloomHeight;
+		binfoY.misc.z = 0.0;
+		binfoY.misc.w = 1.0;
+		SetConstant(vcmd, constbloom_name + "Y", 4, &binfoY, sizeof(binfoY));
+		DrawIndex(vcmd, "bloomY", 0, _countof(idx_rect), 4);
 		GenerateMipmap(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
 
 		//Draw offscreen buffer to present buffer.
@@ -292,19 +292,19 @@ int main()
 		SetShader(vcmd, "./shaders/present", is_update, false, false);
 		ClearRenderTarget(vcmd, backbuffer_name, clear_color_present[frame & 1]);
 		ClearDepthRenderTarget(vcmd, backbuffer_name, 1.0f);
-		SetTexture(vcmd, offscreen_name, 0);
-		SetTexture(vcmd, bloomscreen_name, 1);
+		SetTexture(vcmd, offscreen_name, 1);
+		SetTexture(vcmd, bloomscreen_name, 3);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
-		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));
+		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 5);
 
 		//Draw Depth
 		SetRenderTarget(vcmd, backbuffer_name, Width, Height, true);
 		SetShader(vcmd, "./shaders/showdepth", is_update, false, false);
-		SetTexture(vcmd, offscreen_depth_name, 0);
+		SetTexture(vcmd, offscreen_depth_name, 4);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
-		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect));
+		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 6);
 
 		//Present CMD to ODEN.
 		SetBarrierToPresent(vcmd, backbuffer_name);

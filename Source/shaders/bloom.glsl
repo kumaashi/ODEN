@@ -24,8 +24,9 @@
 #version 450 core
 
 
-layout(binding=0) uniform sampler2D tex0;
-layout(binding=1) uniform buf {
+layout(set=0, binding=1) uniform sampler2D tex0;
+layout(set=0, binding=2) uniform sampler2D tex1;
+layout(set=1, binding=0) uniform buf {
 	vec4 direction;
 } ubuf;
 
