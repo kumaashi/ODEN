@@ -170,6 +170,13 @@ void SetId(std::vector<cmd> & vcmd, std::string name,
 	vcmd.push_back(c);
 }
 
+void GenMipmap(std::vector<cmd> & vcmd, std::string name)
+{
+	cmd c = {};
+	c.type = CMD_GEN_MIPMAP;
+	c.name = name;
+	vcmd.push_back(c);
+}
 
 void SetShader(
 	std::vector<cmd> & vcmd, std::string name,

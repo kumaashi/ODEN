@@ -83,22 +83,12 @@ struct constdata {
 	uint32_t matid[4];
 };
 
-struct bloominfo {
-	vector4 direction;
-};
 
 void
 GenerateMipmap(std::vector<oden::cmd> & vcmd, std::string name, int w, int h)
 {
 	using namespace odenutil;
-	//Generate Mipmap
-	SetShader(vcmd, "./shaders/genmipmap", false, false, false);
-	int miplevel = oden_get_mipmap_max(w, h);
-	SetTextureUav(vcmd, name, 0, 0, 0, 0, nullptr, 0);
-	for (int i = 1; i < miplevel; i++) {
-		SetTextureUav(vcmd, name, i, 0, 0, i, nullptr, 0);
-	}
-	Dispatch(vcmd, "mip" + name, w, h, miplevel);
+	GenMipmap(vcmd, name);
 }
 
 int main()
@@ -181,11 +171,6 @@ int main()
 
 	auto tex_name = "testtex";
 	uint64_t frame = 0;
-	SetTexture(vcmd, tex_name, 0, TextureWidth, TextureHeight, vtex.data(), vtex.size() * sizeof(uint32_t), 256 * sizeof(uint32_t));
-	for(int i = 0 ; i < ShaderSlotMax; i++) {
-		SetConstant(vcmd, "nullconst", 0, &cdata, sizeof(cdata));
-		SetTexture(vcmd, tex_name, i);
-	}
 	while (Update()) {
 		auto buffer_index = frame % BufferMax;
 		auto index_name = std::to_string(buffer_index);
@@ -261,9 +246,8 @@ int main()
 		SetConstant(vcmd, constant_name + "head", 2, &cdata, sizeof(cdata));
 		DrawIndex(vcmd, "cube_draw", 0, _countof(idx_cube), 2);
 
-		GenerateMipmap(vcmd, offscreen_name, Width, Height);
+		GenMipmap(vcmd, offscreen_name);
 
-		/*
 		//Create Bloom X
 		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
 		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
@@ -276,9 +260,10 @@ int main()
 		binfoX.misc.y = BloomHeight;
 		binfoX.misc.z = 1.0;
 		binfoX.misc.w = 0.0;
+		binfoX.matid[0] = 1;
 		SetConstant(vcmd, constbloom_name + "X", 3, &binfoX, sizeof(binfoX));
 		DrawIndex(vcmd, "bloomX", 0, _countof(idx_rect), 3);
-		GenerateMipmap(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
+		GenMipmap(vcmd, bloomscreen_nameX);
 
 		//Create Bloom Y
 		SetRenderTarget(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
@@ -292,9 +277,10 @@ int main()
 		binfoY.misc.y = BloomHeight;
 		binfoY.misc.z = 0.0;
 		binfoY.misc.w = 1.0;
+		binfoY.matid[0] = 2;
 		SetConstant(vcmd, constbloom_name + "Y", 4, &binfoY, sizeof(binfoY));
 		DrawIndex(vcmd, "bloomY", 0, _countof(idx_rect), 4);
-		GenerateMipmap(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
+		GenMipmap(vcmd, bloomscreen_name);
 
 		//Draw offscreen buffer to present buffer.
 		SetRenderTarget(vcmd, backbuffer_name, Width, Height, true);
@@ -314,7 +300,6 @@ int main()
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 6);
-		*/
 
 		//Present CMD to ODEN.
 		SetBarrierToPresent(vcmd, backbuffer_name);

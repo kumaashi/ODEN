@@ -47,6 +47,7 @@ enum {
 	CMD_SET_SHADER,
 	CMD_CLEAR,
 	CMD_CLEAR_DEPTH,
+	CMD_GEN_MIPMAP,
 	CMD_DRAW_INDEX,
 	CMD_DRAW,
 	CMD_DISPATCH,
@@ -117,6 +118,9 @@ struct cmd {
 		struct clear_depth_t {
 			float value;
 		} clear_depth;
+
+		struct gen_mipmap_t {
+		} gen_mipmap;
 
 		struct draw_t {
 			int iid;
@@ -205,6 +209,8 @@ oden_get_cmd_name(int c)
 		return "CMD_CLEAR_DEPTH";
 	if (c == CMD_DRAW_INDEX)
 		return "CMD_DRAW_INDEX";
+	if (c == CMD_GEN_MIPMAP)
+		return "CMD_GEN_MIPMAP";
 	if (c == CMD_DRAW)
 		return "CMD_DRAW";
 	if (c == CMD_DISPATCH)

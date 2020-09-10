@@ -65,19 +65,19 @@ layout(location=3) flat in int v_id;
 layout(location=0) out vec4 out_color;
 
 //https://github.com/Jam3/glsl-fast-gaussian-blur/
-vec4 blur13(vec2 uv, vec2 resolution, vec2 direction, float miplevel)
+vec4 blur13(uint matid, vec2 uv, vec2 resolution, vec2 direction, float miplevel)
 {
 	vec4 color = vec4(0.0);
 	vec2 off1 = 1.411764705882353 * direction;
 	vec2 off2 = 3.2941176470588234 * direction;
 	vec2 off3 = 5.176470588235294 * direction;
-	color += texture(tex[0], uv, miplevel) * 0.1964825501511404;
-	color += texture(tex[0], uv + (off1 / resolution), miplevel) * 0.2969069646728344;
-	color += texture(tex[0], uv - (off1 / resolution), miplevel) * 0.2969069646728344;
-	color += texture(tex[0], uv + (off2 / resolution), miplevel) * 0.09447039785044732;
-	color += texture(tex[0], uv - (off2 / resolution), miplevel) * 0.09447039785044732;
-	color += texture(tex[0], uv + (off3 / resolution), miplevel) * 0.010381362401148057;
-	color += texture(tex[0], uv - (off3 / resolution), miplevel) * 0.010381362401148057;
+	color += texture(tex[matid], uv, miplevel) * 0.1964825501511404;
+	color += texture(tex[matid], uv + (off1 / resolution), miplevel) * 0.2969069646728344;
+	color += texture(tex[matid], uv - (off1 / resolution), miplevel) * 0.2969069646728344;
+	color += texture(tex[matid], uv + (off2 / resolution), miplevel) * 0.09447039785044732;
+	color += texture(tex[matid], uv - (off2 / resolution), miplevel) * 0.09447039785044732;
+	color += texture(tex[matid], uv + (off3 / resolution), miplevel) * 0.010381362401148057;
+	color += texture(tex[matid], uv - (off3 / resolution), miplevel) * 0.010381362401148057;
 	color.a = 1.0;
 	return color;
 }
@@ -88,6 +88,7 @@ void main() {
 	int id = v_id; //deprecated, gl_InstanceID
 	vec2 dir = ubufs[id].misc.zw;
 	vec2 rtsize = ubufs[id].misc.xy;
+	uint matid = ubufs[id].matid[0];
 	vec4 col = vec4(0, 0, 0, 0);
 
 	const int MAX_LEVEL = 10;
@@ -95,7 +96,7 @@ void main() {
 	for (int i = MAX_LEVEL ; i >= 0; i--)
 	{
 		float level  = float(i);
-		col += blur13(uv, rtsize, dir, level);
+		col += blur13(matid, uv, rtsize, dir, level);
 		col *= 0.5;
 	}
 	out_color = col;
