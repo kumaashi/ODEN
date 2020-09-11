@@ -39,7 +39,6 @@
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "advapi32.lib")
-
 #pragma comment(lib, "vulkan-1.lib")
 
 #define ODEN_VK_DEBUG_MODE
@@ -136,7 +135,7 @@ VKAPI_CALL debug_callback(
 	const char* pMessage,
 	void* pUserData)
 {
-	printf("vkdbg: ");
+	printf("\n\nvkdbg: ");
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 		printf("ERROR : ");
 	if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
@@ -148,7 +147,7 @@ VKAPI_CALL debug_callback(
 	if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
 		printf("DEBUG : ");
 	printf("%s", pMessage);
-	printf("\n");
+	printf("\n\n\n");
 	return VK_FALSE;
 }
 
@@ -195,7 +194,7 @@ create_image(
 	info.pQueueFamilyIndices = NULL;
 	info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	vkCreateImage(device, &info, NULL, &ret);
-	if(ret && pinfo)
+	if (ret && pinfo)
 		*pinfo = info;
 	return (ret);
 }
@@ -226,7 +225,7 @@ create_image_view(
 	info.subresourceRange.baseArrayLayer = 0;
 	info.subresourceRange.layerCount = 1;
 	vkCreateImageView(device, &info, NULL, &ret);
-	if(ret && pinfo)
+	if (ret && pinfo)
 		*pinfo = info;
 	return (ret);
 }
@@ -289,7 +288,6 @@ create_renderpass(
 	auto initialLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 	auto finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
 	auto loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	// todo VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV
 	if (is_presentable) {
 		initialLayoutColor = VK_IMAGE_LAYOUT_UNDEFINED;
 		finalLayoutColor = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -329,12 +327,12 @@ create_renderpass(
 
 	VkAttachmentReference color_reference = {};
 	color_reference.attachment = 0;
-	color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	color_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 	//color_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 
 	VkAttachmentReference depth_reference = {};
 	depth_reference.attachment = 1;
-	depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depth_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 	//depth_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 
 	for (int i = 0 ; i < color_num; i++) {
@@ -813,23 +811,22 @@ update_descriptor_sets(
 }
 
 static void
-gen_mipmap(VkCommandBuffer cmdbuf, VkImage image, VkImageAspectFlagBits aspect, uint32_t width, uint32_t height, uint32_t miplevels)
+gen_mipmap(
+	VkCommandBuffer cmdbuf,
+	VkImage image, VkImageAspectFlagBits aspect,
+	uint32_t width, uint32_t height, uint32_t miplevels)
 {
 	//https://github.com/SaschaWillems/Vulkan/blob/master/examples/texturemipmapgen/texturemipmapgen.cpp
-	// Copy down mips from n-1 to n
-	for (int32_t i = 1; i < miplevels; i++)
-	{
+	for (int32_t i = 1; i < miplevels; i++) {
 		VkImageBlit image_blit = {};
 
-		// Source
 		image_blit.srcSubresource.aspectMask = aspect;
 		image_blit.srcSubresource.layerCount = 1;
-		image_blit.srcSubresource.mipLevel = i-1;
+		image_blit.srcSubresource.mipLevel = i - 1;
 		image_blit.srcOffsets[1].x = int32_t(width >> (i - 1));
 		image_blit.srcOffsets[1].y = int32_t(height >> (i - 1));
 		image_blit.srcOffsets[1].z = 1;
 
-		// Destination
 		image_blit.dstSubresource.aspectMask = aspect;
 		image_blit.dstSubresource.layerCount = 1;
 		image_blit.dstSubresource.mipLevel = i;
@@ -837,37 +834,19 @@ gen_mipmap(VkCommandBuffer cmdbuf, VkImage image, VkImageAspectFlagBits aspect, 
 		image_blit.dstOffsets[1].y = int32_t(height >> i);
 		image_blit.dstOffsets[1].z = 1;
 
-		/*
-		VkImageSubresourceRange mipSubRange = {};
-		mipSubRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		mipSubRange.baseMipLevel = i;
-		mipSubRange.levelCount = 1;
-		mipSubRange.layerCount = 1;
-		vks::tools::insertImageMemoryBarrier(
-			cmdbuf,
-			image,
-			0,
-			VK_ACCESS_TRANSFER_WRITE_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			mipSubRange);
-		*/
-
 		auto barrier_before_base = get_barrier(image, aspect, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, i - 1, 1, 0, 1);
+		auto barrier_after_base = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i - 1, 1, 0, 1);
 		auto barrier_before = get_barrier(image, aspect, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, i, 1, 0, 1);
+		auto barrier_after = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i, 1, 0, 1);
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before_base);
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
-		if(aspect == VK_IMAGE_ASPECT_COLOR_BIT)
+		if (aspect == VK_IMAGE_ASPECT_COLOR_BIT)
 			vkCmdBlitImage(cmdbuf, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_blit, VK_FILTER_LINEAR); //VK_FILTER_LINEAR
-		if(aspect == VK_IMAGE_ASPECT_DEPTH_BIT)
+		if (aspect == VK_IMAGE_ASPECT_DEPTH_BIT)
 			vkCmdBlitImage(cmdbuf, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_blit, VK_FILTER_NEAREST); //VK_FILTER_LINEAR
-
-		auto barrier_after = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i, 1, 0, 1);
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
+		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after_base);
 	}
-
 }
 
 void
@@ -1301,7 +1280,7 @@ oden::oden_present_graphics(
 	}
 
 
-	auto get_aligned_offset = [=](size_t offset) {
+	auto get_aligned_offset = [ = ](size_t offset) {
 		auto align = gpu_props.limits.minUniformBufferOffsetAlignment;
 		auto ret = offset;
 		ret = ret + (align - 1);
@@ -1401,22 +1380,24 @@ oden::oden_present_graphics(
 						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
 						VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 						VK_IMAGE_USAGE_STORAGE_BIT |
-						VK_IMAGE_USAGE_TRANSFER_SRC_BIT | 
+						VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
 						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips, &info);
 				mimages[name_color] = image_color;
 				mimagesinfo[name_color] = info;
 				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
+
+
 			}
 
 			//allocate color memreq and Bind
 			if (mmemreqs.count(name_color) == 0) {
 				auto memreqs = get_image_memory_requirements(device, image_color);
-				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, maxmips);
 				VkDeviceMemory devmem = alloc_devmem(name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				vkBindImageMemory(device, image_color, devmem, 0);
-				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-
 				mmemreqs[name_color] = memreqs;
+
+				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, maxmips);
+				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
 
 			//COLOR VIEW
@@ -1444,22 +1425,24 @@ oden::oden_present_graphics(
 			if (image_depth == nullptr) {
 				VkImageCreateInfo info = {};
 				image_depth = create_image(device, w, h, fmt_depth,
-					VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | 
-					VK_IMAGE_USAGE_SAMPLED_BIT, maxmips, &info);
+						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+						VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips, &info);
 				mimages[name_depth] = image_depth;
 				mimagesinfo[name_depth] = info;
+
+
 			}
 
 			//allocate depth memreq and Bind
 			if (mmemreqs.count(name_depth) == 0) {
 				auto memreqs = get_image_memory_requirements(device, image_depth);
-				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 				VkDeviceMemory devmem = alloc_devmem(name_depth, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				vkBindImageMemory(device, image_depth, devmem, 0);
-				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-
 				mmemreqs[name_depth] = memreqs;
+
+				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, 1);
+				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
 
 			//DEPTH VIEW
@@ -1512,10 +1495,10 @@ oden::oden_present_graphics(
 			auto image_color = mimages[name_color];
 			if (image_color == nullptr) {
 				image_color = create_image(device, w, h, fmt_color,
-					VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-					VK_IMAGE_USAGE_STORAGE_BIT |
-					VK_IMAGE_USAGE_SAMPLED_BIT, 1);
+						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+						VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+						VK_IMAGE_USAGE_STORAGE_BIT |
+						VK_IMAGE_USAGE_SAMPLED_BIT, 1);
 				mimages[name_color] = image_color;
 				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
 			}
@@ -1528,8 +1511,6 @@ oden::oden_present_graphics(
 				auto devmem = alloc_devmem(name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				vkBindImageMemory(device, image_color, devmem, 0);
 
-				auto before_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-				auto after_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 				auto scratch_buffer = create_buffer(device, size);
 				auto memreqs_buffer = get_buffer_memory_requirements(device, scratch_buffer);
 				ref.vscratch_buffers.push_back(scratch_buffer);
@@ -1537,7 +1518,7 @@ oden::oden_present_graphics(
 
 				{
 					auto devmem = alloc_devmem(std::string(name) + "_staging", memreqs_buffer.size,
-						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false);
+							VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false);
 					ref.vscratch_devmems.push_back(devmem);
 					vkBindBufferMemory(device, scratch_buffer, devmem, 0);
 					void *dest = nullptr;
@@ -1559,11 +1540,12 @@ oden::oden_present_graphics(
 					copy_region.imageOffset = {0, 0, 0};
 					copy_region.imageExtent = {w, h, 1};
 
+					auto before_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+					auto after_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &before_barrier);
 					vkCmdCopyBufferToImage(ref.cmdbuf, scratch_buffer, image_color, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &after_barrier);
 				}
-
 				mmemreqs[name_color] = memreqs;
 			}
 
@@ -1622,7 +1604,7 @@ oden::oden_present_graphics(
 				auto memreqs = get_buffer_memory_requirements(device, buffer);
 				mmemreqs[name] = memreqs;
 				devmem = alloc_devmem(name, memreqs.size,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
 				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
 			}
@@ -1668,7 +1650,7 @@ oden::oden_present_graphics(
 				auto memreqs = get_buffer_memory_requirements(device, buffer);
 				mmemreqs[name] = memreqs;
 				auto devmem = alloc_devmem(name, memreqs.size,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
 				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
 
@@ -1702,7 +1684,7 @@ oden::oden_present_graphics(
 				auto memreqs = get_buffer_memory_requirements(device, buffer);
 				mmemreqs[name] = memreqs;
 				auto devmem = alloc_devmem(name, memreqs.size,
-					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
 				LOG_MAIN("vkBindBufferMemory index name=%s Done\n", name.c_str());
 
@@ -1748,14 +1730,6 @@ oden::oden_present_graphics(
 				}
 			}
 		}
-
-		//ignore update phase.
-		if (type == CMD_CLEAR) {}
-		if (type == CMD_CLEAR_DEPTH) {}
-		if (type == CMD_DRAW_INDEX) {}
-		if (type == CMD_DRAW) {}
-		if (type == CMD_DISPATCH) {}
-
 		LOG_MAIN("prepare : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
 		cmd_index++;
 	}
@@ -1782,46 +1756,14 @@ oden::oden_present_graphics(
 		auto type = c.type;
 		auto name = c.name;
 
-		if (type == CMD_SET_BARRIER) {
+		if (type == CMD_PRESENT) {
 			auto name_color = name;
-			auto name_depth = oden_get_depth_render_target_name(name);
 			auto image_color = mimages[name_color];
-			auto image_depth = mimages[name_depth];
-
-			//prepare for context roll.
 			if (rec.submit_renderpass)
 				end_renderpass();
-
-			VkImageMemoryBarrier barrier = {};
 			if (image_color) {
-				if (c.set_barrier.to_present) {
-					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-					LOG_MAIN("SET BARRIER  0x%p : to_present name=%s : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR\n", image_color, name.c_str());
-				}
-				if (c.set_barrier.to_texture) {
-					if (name.find("depth") != std::string::npos) {
-						barrier = get_barrier(image_color, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-						LOG_MAIN("SET BARRIER  0x%p : to_texture name=%s : VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL\n", image_color, name.c_str());
-					} else {
-						barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-						LOG_MAIN("SET BARRIER  0x%p : to_texture name=%s : VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL\n", image_color, name.c_str());
-					}
-					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-				}
-				if (c.set_barrier.to_rendertarget) {
-					barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-					LOG_MAIN("SET BARRIER  0x%p : to_rendertarget name=%s : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL\n", image_color, name.c_str());
-				}
-			}
-
-			if (image_depth) {
-				if (c.set_barrier.to_depthrendertarget) {
-					barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
-					LOG_MAIN("SET BARRIER  0x%p : to_depthrendertarget name=%s : VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL\n", image_depth, name.c_str());
-				}
+				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
 		}
 
@@ -1884,20 +1826,6 @@ oden::oden_present_graphics(
 			setup_renderpass(name, rp_begin, renderpass);
 		}
 
-		//CMD_SET_TEXTURE
-		if (type == CMD_SET_TEXTURE || type == CMD_SET_TEXTURE_UAV) {
-		}
-
-		//CMD_SET_CONSTANT
-		if (type == CMD_SET_ID) {
-			uint32_t id = c.set_id.id;
-			vkCmdPushConstants(
-				ref.cmdbuf,
-				pipeline_layout,
-				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
-				0, sizeof(uint32_t), &id);
-		}
-
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
 			auto buffer = mbuffers[name];
@@ -1952,7 +1880,11 @@ oden::oden_present_graphics(
 			clearColor.float32[1] = c.clear.color[1];
 			clearColor.float32[2] = c.clear.color[2];
 			clearColor.float32[3] = c.clear.color[3];
+			auto barrier_before = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
+			auto barrier_after = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
 
 		//CMD_CLEAR_DEPTH
@@ -1973,7 +1905,11 @@ oden::oden_present_graphics(
 			image_range_depth.levelCount = 1;
 			image_range_depth.baseArrayLayer = 0;
 			image_range_depth.layerCount = 1;
+			auto barrier_before = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearDepthStencilImage(ref.cmdbuf, image_depth, VK_IMAGE_LAYOUT_GENERAL, &cdsv, 1, &image_range_depth);
+			auto barrier_after = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
 
 		//CMD_GEN_MIPMAP
@@ -1988,9 +1924,9 @@ oden::oden_present_graphics(
 			auto image_depth = mimages[name_depth];
 			auto info_depth = mimagesinfo[name_depth];
 
-			if(image_color)
+			if (image_color)
 				gen_mipmap(ref.cmdbuf, image_color, VK_IMAGE_ASPECT_COLOR_BIT, info_color.extent.width, info_color.extent.height, info_color.mipLevels);
-			if(image_depth)
+			if (image_depth)
 				gen_mipmap(ref.cmdbuf, image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, info_depth.extent.width, info_depth.extent.height, info_depth.mipLevels);
 		}
 
@@ -2000,7 +1936,7 @@ oden::oden_present_graphics(
 			if (!rec.submit_renderpass) {
 				begin_renderpass();
 			} else {
-				
+
 			}
 			vkCmdDrawIndexed(ref.cmdbuf, c.draw_index.count, 1, 0, 0, iid);
 		}
