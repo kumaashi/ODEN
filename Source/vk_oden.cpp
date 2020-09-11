@@ -41,7 +41,7 @@
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "vulkan-1.lib")
 
-#define ODEN_VK_DEBUG_MODE
+//#define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
@@ -167,11 +167,16 @@ bind_debug_fn(
 		LOG_MAIN("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
 }
 
-[[ nodiscard ]] static VkImage
+[[ nodiscard ]]
+static VkImage
 create_image(
 	VkDevice device,
-	uint32_t width, uint32_t height, VkFormat format,
-	VkImageUsageFlags usageFlags, int maxmips, VkImageCreateInfo *pinfo = nullptr)
+	uint32_t width,
+	uint32_t height,
+	VkFormat format,
+	VkImageUsageFlags usageFlags,
+	int maxmips,
+	VkImageCreateInfo *pinfo = nullptr)
 {
 	VkImage ret = VK_NULL_HANDLE;
 	VkImageCreateInfo info = {};
@@ -199,7 +204,8 @@ create_image(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkImageView
+[[ nodiscard ]]
+static VkImageView
 create_image_view(
 	VkDevice device,
 	VkImage image,
@@ -230,8 +236,12 @@ create_image_view(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkBuffer
-create_buffer(VkDevice device, VkDeviceSize size)
+[[ nodiscard ]]
+static VkBuffer
+create_buffer(
+	VkDevice device,
+	VkDeviceSize size,
+	VkBufferCreateInfo *pinfo = nullptr)
 {
 	VkBuffer ret = VK_NULL_HANDLE;
 	VkBufferCreateInfo info = {};
@@ -244,11 +254,14 @@ create_buffer(VkDevice device, VkDeviceSize size)
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	vkCreateBuffer(device, &info, nullptr, &ret);
+	if (ret && pinfo)
+		*pinfo = info;
 
 	return (ret);
 }
 
-[[ nodiscard ]] static VkImageMemoryBarrier
+[[ nodiscard ]]
+static VkImageMemoryBarrier
 get_barrier(VkImage image,
 	VkImageAspectFlags aspectMask,
 	VkImageLayout old_image_layout,
@@ -273,13 +286,14 @@ get_barrier(VkImage image,
 	return (ret);
 }
 
-[[ nodiscard ]] static VkRenderPass
+[[ nodiscard ]]
+static VkRenderPass
 create_renderpass(
 	VkDevice device,
 	uint32_t color_num,
 	bool is_presentable,
-	VkFormat color_format = VK_FORMAT_B8G8R8A8_UNORM,
-	VkFormat depth_format = VK_FORMAT_D32_SFLOAT)
+	VkFormat color_format,
+	VkFormat depth_format)
 {
 	VkRenderPass ret = VK_NULL_HANDLE;
 
@@ -328,12 +342,10 @@ create_renderpass(
 	VkAttachmentReference color_reference = {};
 	color_reference.attachment = 0;
 	color_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
-	//color_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 
 	VkAttachmentReference depth_reference = {};
 	depth_reference.attachment = 1;
 	depth_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
-	//depth_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
 
 	for (int i = 0 ; i < color_num; i++) {
 		auto ref = color_reference;
@@ -370,7 +382,8 @@ create_renderpass(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkFramebuffer
+[[ nodiscard ]]
+static VkFramebuffer
 create_framebuffer(
 	VkDevice device,
 	VkRenderPass renderpass,
@@ -396,7 +409,8 @@ create_framebuffer(
 	return (fb);
 }
 
-[[ nodiscard ]] static VkDescriptorSet
+[[ nodiscard ]]
+static VkDescriptorSet
 create_descriptor_set(
 	VkDevice device,
 	VkDescriptorPool descriptor_pool,
@@ -415,7 +429,8 @@ create_descriptor_set(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkFence
+[[ nodiscard ]]
+static VkFence
 create_fence(VkDevice device)
 {
 	VkFenceCreateInfo fence_ci = {};
@@ -429,8 +444,11 @@ create_fence(VkDevice device)
 	return (ret);
 }
 
-[[ nodiscard ]] static VkSampler
-create_sampler(VkDevice device, bool isfilterd)
+[[ nodiscard ]]
+static VkSampler
+create_sampler(
+	VkDevice device,
+	bool isfilterd)
 {
 	VkSampler ret = VK_NULL_HANDLE;
 	VkSamplerCreateInfo info = {};
@@ -448,7 +466,7 @@ create_sampler(VkDevice device, bool isfilterd)
 	info.maxAnisotropy = 0;
 	info.compareOp = VK_COMPARE_OP_NEVER;
 	info.minLod = 0.0f;
-	info.maxLod = 3.402823466e+38f;
+	info.maxLod = FLT_MAX;
 	info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	info.unnormalizedCoordinates = VK_FALSE;
 	if (isfilterd) {
@@ -461,7 +479,8 @@ create_sampler(VkDevice device, bool isfilterd)
 	return (ret);
 }
 
-[[ nodiscard ]] static VkCommandPool
+[[ nodiscard ]]
+static VkCommandPool
 create_command_pool(
 	VkDevice device, uint32_t index_qfi)
 {
@@ -638,7 +657,7 @@ create_gpipeline_from_file(
 	VkPipelineDepthStencilStateCreateInfo ds = {};
 	VkPipelineViewportStateCreateInfo vp = {};
 	VkPipelineMultisampleStateCreateInfo ms = {};
-	VkPipelineDynamicStateCreateInfo dynamic_state = {};
+	VkPipelineDynamicStateCreateInfo dyns = {};
 
 	//setup vp, sc
 	vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -649,9 +668,9 @@ create_gpipeline_from_file(
 	vdynamic_state_enables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
 	vdynamic_state_enables.push_back(VK_DYNAMIC_STATE_SCISSOR);
 
-	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamic_state.pDynamicStates = vdynamic_state_enables.data();
-	dynamic_state.dynamicStateCount = vdynamic_state_enables.size();
+	dyns.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dyns.pDynamicStates = vdynamic_state_enables.data();
+	dyns.dynamicStateCount = vdynamic_state_enables.size();
 
 	//SETUP RS
 	rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -733,12 +752,12 @@ create_gpipeline_from_file(
 
 	//SETUP IA
 	uint32_t stride_size = 0;
-	std::vector<VkVertexInputAttributeDescription> vvertex_input_attr_descs;
-	vvertex_input_attr_descs.push_back({0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, stride_size});
+	std::vector<VkVertexInputAttributeDescription> vvia_desc;
+	vvia_desc.push_back({0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, stride_size});
 	stride_size += sizeof(float) * 4;
-	vvertex_input_attr_descs.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, stride_size});
+	vvia_desc.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, stride_size});
 	stride_size += sizeof(float) * 3;
-	vvertex_input_attr_descs.push_back({2, 0, VK_FORMAT_R32G32_SFLOAT, stride_size});
+	vvia_desc.push_back({2, 0, VK_FORMAT_R32G32_SFLOAT, stride_size});
 	stride_size += sizeof(float) * 2;
 
 	ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -752,30 +771,31 @@ create_gpipeline_from_file(
 	vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vi.vertexBindingDescriptionCount = 1;
 	vi.pVertexBindingDescriptions = &vi_ibdesc;
-	vi.vertexAttributeDescriptionCount = vvertex_input_attr_descs.size();
-	vi.pVertexAttributeDescriptions = vvertex_input_attr_descs.data();
+	vi.vertexAttributeDescriptionCount = vvia_desc.size();
+	vi.pVertexAttributeDescriptions = vvia_desc.data();
 
 	//Create Pipeline
-	if (!vsstageinfo.empty()) {
-		VkGraphicsPipelineCreateInfo pipeline_info = {};
-		pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipeline_info.layout = pipeline_layout;
-		pipeline_info.pVertexInputState = &vi;
-		pipeline_info.pInputAssemblyState = &ia;
-		pipeline_info.pRasterizationState = &rs;
-		pipeline_info.pColorBlendState = &cb;
-		pipeline_info.pMultisampleState = &ms;
-		pipeline_info.pViewportState = &vp;
-		pipeline_info.pDepthStencilState = &ds;
-		pipeline_info.stageCount = vsstageinfo.size();
-		pipeline_info.pStages = vsstageinfo.data();
-		pipeline_info.pDynamicState = &dynamic_state;
-		pipeline_info.renderPass = renderpass;
-		auto pipeline_result = vkCreateGraphicsPipelines(
-				device, nullptr, 1, &pipeline_info, NULL, &ret);
-		LOG_INFO("vkCreateGraphicsPipelines Done filename=%s, pipeline=%p\n", filename, ret);
+	if (vsstageinfo.empty()) {
+		LOG_ERR("failed create pipeline\n");
+		return nullptr;
 	}
-
+	VkGraphicsPipelineCreateInfo info = {};
+	info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	info.layout = pipeline_layout;
+	info.pVertexInputState = &vi;
+	info.pInputAssemblyState = &ia;
+	info.pRasterizationState = &rs;
+	info.pColorBlendState = &cb;
+	info.pMultisampleState = &ms;
+	info.pViewportState = &vp;
+	info.pDepthStencilState = &ds;
+	info.stageCount = vsstageinfo.size();
+	info.pStages = vsstageinfo.data();
+	info.pDynamicState = &dyns;
+	info.renderPass = renderpass;
+	auto pipeline_result = vkCreateGraphicsPipelines(
+			device, nullptr, 1, &info, NULL, &ret);
+	LOG_INFO("Done filename=%s, pipeline=%p\n", filename, ret);
 	for (auto & module : vshadermodules)
 		if (module)
 			vkDestroyShaderModule(device, module, nullptr);
@@ -1395,7 +1415,6 @@ oden::oden_present_graphics(
 				VkDeviceMemory devmem = alloc_devmem(name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				vkBindImageMemory(device, image_color, devmem, 0);
 				mmemreqs[name_color] = memreqs;
-
 				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, maxmips);
 				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
@@ -1430,8 +1449,6 @@ oden::oden_present_graphics(
 						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips, &info);
 				mimages[name_depth] = image_depth;
 				mimagesinfo[name_depth] = info;
-
-
 			}
 
 			//allocate depth memreq and Bind
