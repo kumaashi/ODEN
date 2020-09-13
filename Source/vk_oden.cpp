@@ -909,7 +909,7 @@ oden::oden_present_graphics(
 		std::vector<VkBuffer> vscratch_buffers;
 		std::vector<VkDeviceMemory> vscratch_devmems;
 	};
-
+	
 	static VkInstance inst = VK_NULL_HANDLE;
 	static VkPhysicalDevice gpudev = VK_NULL_HANDLE;
 	static VkDevice device = VK_NULL_HANDLE;
@@ -948,8 +948,8 @@ oden::oden_present_graphics(
 	struct selected_handle {
 		std::string renderpass_name;
 		VkRenderPassBeginInfo info;
-		VkRenderPass renderpass;
-		VkRenderPass renderpass_commited;
+		VkRenderPass renderpass = nullptr;
+		VkRenderPass renderpass_commited = nullptr;
 		bool submit_renderpass = false;
 	};
 	selected_handle rec = {};
@@ -1795,10 +1795,7 @@ oden::oden_present_graphics(
 
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
-			auto x = c.set_render_target.rect.x;
-			auto y = c.set_render_target.rect.y;
-			auto w = c.set_render_target.rect.w;
-			auto h = c.set_render_target.rect.h;
+			auto rect = c.set_render_target.rect;
 			bool is_backbuffer = c.set_render_target.is_backbuffer;
 
 			//COLOR
@@ -1821,21 +1818,21 @@ oden::oden_present_graphics(
 				end_renderpass();
 
 			if (maxmips == 0)
-				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", w, h, name.c_str());
+				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", rect.w, rect.h, name.c_str());
 
 			//setup viewport and scissor
 			LOG_INFO("vkCmdSetViewport name=%s\n", name.c_str());
 			VkViewport viewport = {};
-			viewport.width = (float)w;
-			viewport.height = (float)h;
+			viewport.width = (float)rect.w;
+			viewport.height = (float)rect.h;
 			viewport.minDepth = (float)0.0f;
 			viewport.maxDepth = (float)1.0f;
 			vkCmdSetViewport(ref.cmdbuf, 0, 1, &viewport);
 
 			LOG_INFO("vkCmdSetScissor name=%s\n", name.c_str());
 			VkRect2D scissor = {};
-			scissor.extent.width = w;
-			scissor.extent.height = h;
+			scissor.extent.width = rect.w;
+			scissor.extent.height = rect.h;
 			scissor.offset.x = 0;
 			scissor.offset.y = 0;
 			vkCmdSetScissor(ref.cmdbuf, 0, 1, &scissor);
@@ -1847,8 +1844,8 @@ oden::oden_present_graphics(
 			rp_begin.framebuffer = framebuffer;
 			rp_begin.renderArea.offset.x = 0;
 			rp_begin.renderArea.offset.y = 0;
-			rp_begin.renderArea.extent.width = w;
-			rp_begin.renderArea.extent.height = h;
+			rp_begin.renderArea.extent.width = rect.w;
+			rp_begin.renderArea.extent.height = rect.h;
 			rp_begin.clearValueCount = 0;
 			rp_begin.pClearValues = nullptr;
 			setup_renderpass(name, rp_begin, renderpass);
@@ -1977,26 +1974,6 @@ oden::oden_present_graphics(
 
 		//CMD_SET_TEXTURE
 		if (type == CMD_SET_TEXTURE) {
-			/*
-			auto image = mimages[name];
-			auto aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			auto dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			auto in_layout = VK_IMAGE_LAYOUT_GENERAL;
-			auto miplevel = 1;
-
-			if(mframebuffers.count(name)) {
-				in_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				auto info = mimagesinfo[name];
-				miplevel = info.mipLevels;
-			}
-			if(name.find(ODEN_DEPTH_SIGNATURE))
-				in_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-			auto barrier = get_barrier(image, aspect, in_layout, VK_IMAGE_LAYOUT_GENERAL);
-			for(int i = 0 ; i < miplevel; i++)
-				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, i, 0, NULL, 0, NULL, 1, &barrier);
-			*/
 		}
 
 		//CMD_DRAW_INDEX
