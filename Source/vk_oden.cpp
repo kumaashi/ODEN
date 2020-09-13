@@ -64,8 +64,6 @@ static void fork_process_wait(const char *command)
 static void compile_glsl2spirv(
 	std::string shaderfile, std::string type, std::vector<unsigned char> &vdata)
 {
-	//glslangValidator bloom.glsl -o a.spv -S frag -V --D _PS_
-	//glslangValidator bloom.glsl -o a.spv -S vert -V --D _VS_
 	auto tempfilename = shaderfile + type + std::string("temp.spv");
 	auto basecmd = std::string("glslangValidator -V -S ");
 	auto soption = std::string("null");
