@@ -572,7 +572,8 @@ create_descriptor_set_layout(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkPipelineLayout
+[[ nodiscard ]]
+static VkPipelineLayout
 create_pipeline_layout(
 	VkDevice device,
 	VkDescriptorSetLayout *descriptor_layouts,
@@ -597,7 +598,8 @@ create_pipeline_layout(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkShaderModule
+[[ nodiscard ]]
+static VkShaderModule
 create_shader_module(
 	VkDevice device, void *data, size_t size)
 {
@@ -612,8 +614,8 @@ create_shader_module(
 	return (ret);
 }
 
-
-[[ nodiscard ]] static VkPipeline
+[[ nodiscard ]]
+static VkPipeline
 create_cpipeline_from_file(
 	VkDevice device,
 	const char *filename,
@@ -1042,9 +1044,6 @@ oden::oden_present_graphics(
 
 		//DEBUG
 		static const char *debuglayers[] = {
-			//"VK_LAYER_LUNARG_standard_validation",
-
-			//Todo avoid validation.
 			"VK_LAYER_KHRONOS_validation",
 		};
 		vinstance_ext_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -1311,7 +1310,6 @@ oden::oden_present_graphics(
 		mdevmem.clear();
 		return;
 	}
-
 
 	auto get_aligned_offset = [ = ](size_t offset) {
 		auto align = gpu_props.limits.minUniformBufferOffsetAlignment;
@@ -1757,7 +1755,6 @@ oden::oden_present_graphics(
 		cmd_index++;
 	}
 
-
 	printf("=========================================================================================\n");
 	printf(" START Batch Commands\n");
 	printf("=========================================================================================\n");
@@ -1897,12 +1894,7 @@ oden::oden_present_graphics(
 			if (rec.submit_renderpass)
 				end_renderpass();
 
-			VkImageSubresourceRange image_range_color = {};
-			image_range_color.aspectMask = aspect;
-			image_range_color.baseMipLevel = 0;
-			image_range_color.levelCount = 1;
-			image_range_color.baseArrayLayer = 0;
-			image_range_color.layerCount = 1;
+			VkImageSubresourceRange image_range_color = {aspect, 0, 1, 0, 1};
 
 			VkClearColorValue clearColor = {};
 			clearColor.float32[0] = c.clear.color[0];
@@ -1938,12 +1930,7 @@ oden::oden_present_graphics(
 
 			//Depth
 			VkClearDepthStencilValue cdsv = {1.0f, 0};
-			VkImageSubresourceRange image_range_depth = {};
-			image_range_depth.aspectMask = aspect;
-			image_range_depth.baseMipLevel = 0;
-			image_range_depth.levelCount = 1;
-			image_range_depth.baseArrayLayer = 0;
-			image_range_depth.layerCount = 1;
+			VkImageSubresourceRange image_range_depth = {aspect, 0, 1, 0, 1};
 			auto barrier_before = get_barrier(image_depth, aspect, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 			auto barrier_after = get_barrier(image_depth, aspect, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_before);
@@ -1967,10 +1954,6 @@ oden::oden_present_graphics(
 				gen_mipmap(ref.cmdbuf, image_color, VK_IMAGE_ASPECT_COLOR_BIT, info_color.extent.width, info_color.extent.height, info_color.mipLevels);
 			if (image_depth)
 				gen_mipmap(ref.cmdbuf, image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, info_depth.extent.width, info_depth.extent.height, info_depth.mipLevels);
-		}
-
-		//CMD_SET_TEXTURE
-		if (type == CMD_SET_TEXTURE) {
 		}
 
 		//CMD_DRAW_INDEX
