@@ -26,39 +26,11 @@
 namespace odenutil
 {
 
-void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name)
+void SetPresent(std::vector<cmd> & vcmd, std::string name)
 {
 	cmd c = {};
-	c.type = CMD_SET_BARRIER;
+	c.type = CMD_SET_PRESENT;
 	c.name = name;
-	c.set_barrier.to_present = true;
-	vcmd.push_back(c);
-}
-
-void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name)
-{
-	cmd c = {};
-	c.type = CMD_SET_BARRIER;
-	c.name = name;
-	c.set_barrier.to_rendertarget = true;
-	vcmd.push_back(c);
-}
-
-void SetBarrierToDepthRenderTarget(std::vector<cmd> & vcmd, std::string name)
-{
-	cmd c = {};
-	c.type = CMD_SET_BARRIER;
-	c.name = name;
-	c.set_barrier.to_depthrendertarget = true;
-	vcmd.push_back(c);
-}
-
-void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name)
-{
-	cmd c = {};
-	c.type = CMD_SET_BARRIER;
-	c.name = name;
-	c.set_barrier.to_texture = true;
 	vcmd.push_back(c);
 }
 
@@ -75,8 +47,6 @@ void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	c.set_render_target.rect.h = h;
 	c.set_render_target.is_backbuffer = is_backbuffer;
 	vcmd.push_back(c);
-
-	SetBarrierToRenderTarget(vcmd, name);
 }
 
 void
@@ -84,8 +54,6 @@ SetTexture(
 	std::vector<cmd> & vcmd, std::string name,
 	int slot, int w, int h, void *data, size_t size, size_t stride_size)
 {
-	SetBarrierToTexture(vcmd, name);
-
 	cmd c = {};
 	c.type = CMD_SET_TEXTURE;
 	c.name = name;
@@ -107,8 +75,6 @@ SetTextureUav(
 	int slot, int w, int h, int miplevel,
 	void *data, size_t size, size_t stride_size)
 {
-	SetBarrierToTexture(vcmd, name);
-
 	cmd c = {};
 	c.type = CMD_SET_TEXTURE_UAV;
 	c.name = name;
@@ -160,6 +126,24 @@ void SetConstant(std::vector<cmd> & vcmd, std::string name,
 	vcmd.push_back(c);
 }
 
+void SetId(std::vector<cmd> & vcmd, std::string name,
+	uint32_t id)
+{
+	cmd c = {};
+	c.type = CMD_SET_ID;
+	c.name = name;
+	c.set_id.id = id;
+	vcmd.push_back(c);
+}
+
+void GenMipmap(std::vector<cmd> & vcmd, std::string name)
+{
+	cmd c = {};
+	c.type = CMD_GEN_MIPMAP;
+	c.name = name;
+	vcmd.push_back(c);
+}
+
 void SetShader(
 	std::vector<cmd> & vcmd, std::string name,
 	bool is_update, bool is_cull, bool is_enable_depth)
@@ -195,23 +179,25 @@ void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name,
 }
 
 void DrawIndex(std::vector<cmd> & vcmd, std::string name,
-	int start, int count)
+	int start, int count, uint32_t instance_id)
 {
 	cmd c = {};
 	c.type = CMD_DRAW_INDEX;
 	c.name = name;
 	c.draw_index.start = start;
 	c.draw_index.count = count;
+	c.draw_index.iid = instance_id;
 	vcmd.push_back(c);
 }
 
 void Draw(std::vector<cmd> & vcmd, std::string name,
-	int vertex_count)
+	int vertex_count, uint32_t instance_id)
 {
 	cmd c = {};
 	c.type = CMD_DRAW;
 	c.name = name;
 	c.draw.vertex_count = vertex_count;
+	c.draw.iid = instance_id;
 	vcmd.push_back(c);
 }
 
@@ -233,47 +219,8 @@ void DebugPrint(std::vector<cmd> & vcmd)
 	for (auto & c : vcmd) {
 		printf("%s : ", c.name.c_str());
 		auto type = c.type;
-		switch (type) {
-		case CMD_NOP:
-			printf("CMD_NOP\n");
-			break;
-		case CMD_SET_BARRIER:
-			printf("CMD_SET_BARRIER\n");
-			break;
-		case CMD_SET_RENDER_TARGET:
-			printf("CMD_SET_RENDER_TARGET\n");
-			break;
-		case CMD_SET_TEXTURE:
-			printf("CMD_SET_TEXTURE\n");
-			break;
-		case CMD_SET_VERTEX:
-			printf("CMD_SET_VERTEX\n");
-			break;
-		case CMD_SET_INDEX:
-			printf("CMD_SET_INDEX\n");
-			break;
-		case CMD_SET_CONSTANT:
-			printf("CMD_SET_CONSTANT\n");
-			break;
-		case CMD_SET_SHADER:
-			printf("CMD_SET_SHADER\n");
-			break;
-		case CMD_CLEAR:
-			printf("CMD_CLEAR\n");
-			break;
-		case CMD_CLEAR_DEPTH:
-			printf("CMD_CLEAR_DEPTH\n");
-			break;
-		case CMD_DRAW_INDEX:
-			printf("CMD_DRAW_INDEX\n");
-			break;
-		case CMD_DRAW:
-			printf("CMD_DRAW\n");
-			break;
-		default:
-			printf("CMD_UNKNOWN %d\n", type);
-			break;
-		}
+		auto cmdname = oden_get_cmd_name(type);
+		printf("%s\n", cmdname);
 	}
 }
 

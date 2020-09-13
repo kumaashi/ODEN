@@ -27,21 +27,21 @@
 namespace odenutil
 {
 using namespace oden;
+void SetPresent(std::vector<cmd> & vcmd, std::string name);
 void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name, float value);
 void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name, float col[4]);
 void DebugPrint(std::vector<cmd> & vcmd);
 void Dispatch(std::vector<cmd> & vcmd, std::string name, int x, int y, int z);
-void Draw(std::vector<cmd> & vcmd, std::string name, int vertex_count);
-void DrawIndex(std::vector<cmd> & vcmd, std::string name, int start, int count);
-void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name);
-void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name);
-void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name);
 void SetConstant(std::vector<cmd> & vcmd, std::string name, int slot, void *data, size_t size);
+void SetId(std::vector<cmd> & vcmd, std::string name, uint32_t id);
 void SetIndex(std::vector<cmd> & vcmd, std::string name, void *data, size_t size);
 void SetRenderTarget(std::vector<cmd> & vcmd, std::string name, int w, int h, bool is_backbuffer = false);
 void SetShader(std::vector<cmd> & vcmd, std::string name, bool is_update, bool is_cull = false, bool is_enable_depth = false);
 void SetTexture(std::vector<cmd> & vcmd, std::string name, int slot, int w = 0, int h = 0, void *data = nullptr, size_t size = 0, size_t stride_size = 0);
 void SetTextureUav(std::vector<cmd> & vcmd, std::string name, int slot, int w = 0, int h = 0, int miplevel = 0, void *data = nullptr, size_t size = 0, size_t stride_size = 0);
 void SetVertex(std::vector<cmd> & vcmd, std::string name, void *data, size_t size, size_t stride_size);
+void GenMipmap(std::vector<cmd> & vcmd, std::string name);
+void Draw(std::vector<cmd> & vcmd, std::string name, int vertex_count, uint32_t instanceid = 0);
+void DrawIndex(std::vector<cmd> & vcmd, std::string name, int start, int count, uint32_t instanceid = 0);
 
 };

@@ -21,16 +21,17 @@
  *
  */
 #version 450 core
+#extension GL_EXT_nonuniform_qualifier : enable
 
-layout(binding=0) uniform sampler2D tex0;
-layout(binding=3) uniform sampler2D tex1;
-layout(binding=1) uniform buf {
+layout(set=0, binding=0) uniform sampler2D tex[];
+layout(set=1, binding=0) uniform buf {
 	vec4 time;
 	vec4 misc;
 	mat4 world;
 	mat4 proj;
 	mat4 view;
-} ubuf;
+	uint matid[4];
+} ubufs[];
 
 #ifdef _VS_
 layout(location=0) in vec4 position;
@@ -58,10 +59,13 @@ layout(location=0) out vec4 out_color;
 void main()
 {
 	vec2 uv = v_uv;
-	vec4 col = texture(tex0, uv, 0.0);
-	vec4 blurcol = texture(tex1, uv, 0.0);
-	col.x = texture(tex0, uv + vec2(0.001, 0.001), 0).x;
-	col.z = texture(tex0, uv - vec2(0.001, 0.001), 0).z;
-	out_color = col + blurcol;
+	vec4 col = texture(tex[1], uv, 0.0);
+	vec4 blurcol = texture(tex[3], uv, 0.0);
+	float fao = texture(tex[4], uv, 0.0).r;
+	float d = 0.0025;
+	fao = pow(fao, 32);
+	col.x = texture(tex[1], uv + vec2(d, 0.0), 0).x;
+	col.z = texture(tex[1], uv - vec2(d, 0.0), 0).z;
+	out_color = (fao * col) + blurcol;
 }
 #endif //_PS_

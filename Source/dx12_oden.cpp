@@ -375,25 +375,6 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		auto fmt_color = DXGI_FORMAT_R16G16B16A16_FLOAT;
 		auto fmt_depth = DXGI_FORMAT_D32_FLOAT;
 
-		//CMD_SET_BARRIER
-		if (type == CMD_SET_BARRIER) {
-			D3D12_RESOURCE_TRANSITION_BARRIER tb {};
-			tb.pResource = nullptr;
-			if (c.set_barrier.to_present) {
-				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-				tb.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-			}
-			if (c.set_barrier.to_texture) {
-				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-				tb.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			}
-			if (c.set_barrier.to_rendertarget) {
-				tb.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-				tb.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-			}
-			mbarrier[name] = tb;
-		}
-
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
 			auto x = c.set_render_target.rect.x;
@@ -531,7 +512,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				if (mgpu_handle.count(name) == 0) {
 					D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 					desc.Format = fmt_color;
-					if (name.find("depth") != std::string::npos)
+					if (name.find(ODEN_DEPTH_SIGNATURE) != std::string::npos)
 						desc.Format = DXGI_FORMAT_R32_FLOAT;
 					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

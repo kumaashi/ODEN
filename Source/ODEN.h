@@ -33,22 +33,28 @@
 
 namespace oden
 {
+#define ODEN_BACKBUFFER_SIGNATURE "__backbuffer__"
+#define ODEN_MIPLEVEL_SIGNATURE "__miplevel__"
+#define ODEN_DEPTH_SIGNATURE "__depth__"
 
 enum {
 	CMD_NOP,
-	CMD_SET_BARRIER,
+	CMD_SET_PRESENT,
 	CMD_SET_RENDER_TARGET,
 	CMD_SET_TEXTURE,
 	CMD_SET_TEXTURE_UAV,
 	CMD_SET_VERTEX,
 	CMD_SET_INDEX,
 	CMD_SET_CONSTANT,
+	CMD_SET_ID,
 	CMD_SET_SHADER,
 	CMD_CLEAR,
 	CMD_CLEAR_DEPTH,
+	CMD_GEN_MIPMAP,
 	CMD_DRAW_INDEX,
 	CMD_DRAW,
 	CMD_DISPATCH,
+	CMD_PRESENT,
 	CMD_MAX,
 };
 
@@ -73,11 +79,6 @@ struct cmd {
 			bool is_backbuffer;
 		} set_render_target;
 
-		struct set_depth_render_target_t {
-			int fmt;
-			rect_t rect;
-		} set_depth_render_target;
-
 		struct set_texture_t {
 			int fmt;
 			int slot;
@@ -97,6 +98,10 @@ struct cmd {
 			int slot;
 		} set_constant;
 
+		struct set_id_t {
+			uint32_t id;
+		} set_id;
+
 		struct set_shader_t {
 			bool is_update;
 			bool is_cull;
@@ -112,14 +117,19 @@ struct cmd {
 			float value;
 		} clear_depth;
 
+		struct gen_mipmap_t {
+		} gen_mipmap;
+
+		struct draw_t {
+			int iid;
+			int vertex_count;
+		} draw;
+
 		struct draw_index_t {
+			int iid;
 			int start;
 			int count;
 		} draw_index;
-
-		struct draw_t {
-			int vertex_count;
-		} draw;
 
 		struct dispatch_t {
 			int x, y, z;
@@ -135,7 +145,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 inline std::string
 oden_get_backbuffer_basename(void)
 {
-	return std::string("__backbuffer__");
+	return std::string(ODEN_BACKBUFFER_SIGNATURE);
 }
 
 inline std::string
@@ -147,7 +157,7 @@ oden_get_backbuffer_name(int index)
 inline std::string
 oden_get_mipmap_name(std::string name, int index)
 {
-	return name + "_miplevel_" + std::to_string(index);
+	return name + ODEN_MIPLEVEL_SIGNATURE + std::to_string(index);
 }
 
 inline int
@@ -165,7 +175,7 @@ oden_get_mipmap_max(int w, int h)
 inline std::string
 oden_get_depth_render_target_name(std::string name)
 {
-	return name + "_depth";
+	return name + ODEN_DEPTH_SIGNATURE;
 }
 
 inline const char *
@@ -173,8 +183,6 @@ oden_get_cmd_name(int c)
 {
 	if (c == CMD_NOP)
 		return "CMD_NOP";
-	if (c == CMD_SET_BARRIER)
-		return "CMD_SET_BARRIER";
 	if (c == CMD_SET_RENDER_TARGET)
 		return "CMD_SET_RENDER_TARGET";
 	if (c == CMD_SET_TEXTURE)
@@ -187,6 +195,8 @@ oden_get_cmd_name(int c)
 		return "CMD_SET_INDEX";
 	if (c == CMD_SET_CONSTANT)
 		return "CMD_SET_CONSTANT";
+	if (c == CMD_SET_ID)
+		return "CMD_SET_ID";
 	if (c == CMD_SET_SHADER)
 		return "CMD_SET_SHADER";
 	if (c == CMD_CLEAR)
@@ -195,6 +205,8 @@ oden_get_cmd_name(int c)
 		return "CMD_CLEAR_DEPTH";
 	if (c == CMD_DRAW_INDEX)
 		return "CMD_DRAW_INDEX";
+	if (c == CMD_GEN_MIPMAP)
+		return "CMD_GEN_MIPMAP";
 	if (c == CMD_DRAW)
 		return "CMD_DRAW";
 	if (c == CMD_DISPATCH)

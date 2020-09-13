@@ -21,15 +21,17 @@
  *
  */
 #version 450 core
+#extension GL_EXT_nonuniform_qualifier : enable
 
-layout(binding=0) uniform sampler2D tex0;
-layout(binding=1) uniform buf {
+layout(set=0, binding=0) uniform sampler2D tex[];
+layout(set=1, binding=0) uniform buf {
 	vec4 time;
-	vec4 color;
+	vec4 misc;
 	mat4 world;
 	mat4 proj;
 	mat4 view;
-} ubuf;
+	uint matid[4];
+} ubufs[];
 
 #ifdef _VS_
 layout(location=0) in vec4 position;
