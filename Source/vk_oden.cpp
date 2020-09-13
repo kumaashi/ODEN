@@ -893,7 +893,7 @@ oden::oden_present_graphics(
 		RDT_SLOT_MAX,
 	};
 
-	struct DeviceBuffer {
+	struct frame_info {
 		uint64_t value = 0;
 		VkCommandBuffer cmdbuf = VK_NULL_HANDLE;
 		VkFence fence = VK_NULL_HANDLE;
@@ -935,7 +935,7 @@ oden::oden_present_graphics(
 	static std::map<std::string, VkDeviceMemory> mdevmem;
 	static std::map<std::string, VkPipeline> mpipelines;
 	static std::map<std::string, VkPipelineBindPoint> mpipeline_bindpoints;
-	static std::vector<DeviceBuffer> devicebuffer;
+	static std::vector<frame_info> frame_infos;
 	static std::vector<VkDescriptorSet> vdescriptor_sets;
 
 	static uint32_t backbuffer_index = 0;
@@ -1223,10 +1223,10 @@ oden::oden_present_graphics(
 		cmd_pool = create_command_pool(device, graphics_queue_family_index);
 
 		//Create Frame Resources
-		devicebuffer.resize(count);
+		frame_infos.resize(count);
 
 		for (int i = 0 ; i < count; i++) {
-			auto & ref = devicebuffer[i];
+			auto & ref = frame_infos[i];
 			ref.cmdbuf = create_command_buffer(device, cmd_pool);
 			ref.fence = create_fence(device);
 			vkResetFences(device, 1, &ref.fence);
@@ -1255,7 +1255,7 @@ oden::oden_present_graphics(
 	LOG_INFO("frame_count=%llu\n", frame_count);
 
 	//Determine resource index.
-	auto & ref = devicebuffer[backbuffer_index];
+	auto & ref = frame_infos[backbuffer_index];
 	uint32_t present_index = 0;
 
 	LOG_INFO("vkWaitForFences[%d]\n", backbuffer_index);
@@ -1289,11 +1289,11 @@ oden::oden_present_graphics(
 	//Destroy resources
 	if (hwnd == nullptr) {
 		vkDeviceWaitIdle(device);
-		for (auto & ref : devicebuffer) {
+		for (auto & ref : frame_infos) {
 			vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
 			vkDestroyFence(device, ref.fence, NULL);
 		}
-		for (int i = 0 ; i < devicebuffer.size(); i++) {
+		for (int i = 0 ; i < frame_infos.size(); i++) {
 			auto name_color = oden_get_backbuffer_name(i);
 			mimages.erase(name_color);
 		}
@@ -1867,11 +1867,13 @@ oden::oden_present_graphics(
 
 			auto next_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			auto layout = get_layout(name_color, next_layout);
-			auto barrier_before = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, layout, VK_IMAGE_LAYOUT_GENERAL);
+			
+			auto barrier_before = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 			auto barrier_after = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, next_layout);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
+			
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
 
 		//CMD_CLEAR_DEPTH
@@ -1890,11 +1892,12 @@ oden::oden_present_graphics(
 			VkImageSubresourceRange image_range_depth = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
 			auto next_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			auto layout = get_layout(name_depth, next_layout);
-			auto barrier_before = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, layout, VK_IMAGE_LAYOUT_GENERAL);
+			auto barrier_before = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 			auto barrier_after = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, next_layout);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
+
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearDepthStencilImage(ref.cmdbuf, image_depth, VK_IMAGE_LAYOUT_GENERAL, &cdsv, 1, &image_range_depth);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
 
 		//CMD_SET_TEXTURE
@@ -1907,6 +1910,7 @@ oden::oden_present_graphics(
 			if (name.find(ODEN_DEPTH_SIGNATURE) != std::string::npos)
 				aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 			auto barrier = get_barrier(image, aspect, layout, VK_IMAGE_LAYOUT_GENERAL);
+			LOG_INFO("vkCmdPipelineBarrier name=%s\n", name.c_str());
 			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier);
 		}
 
@@ -1915,17 +1919,16 @@ oden::oden_present_graphics(
 			if (rec.submit_renderpass)
 				end_renderpass();
 
-			auto name_color = name;
-			auto name_depth = oden_get_depth_render_target_name(name);
-			auto image_color = mimages[name_color];
-			auto info_color = mimagesinfo[name_color];
-			auto image_depth = mimages[name_depth];
-			auto info_depth = mimagesinfo[name_depth];
 
-			if (image_color)
-				gen_mipmap(ref.cmdbuf, image_color, VK_IMAGE_ASPECT_COLOR_BIT, info_color.extent.width, info_color.extent.height, info_color.mipLevels);
-			if (image_depth)
-				gen_mipmap(ref.cmdbuf, image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, info_depth.extent.width, info_depth.extent.height, info_depth.mipLevels);
+			auto image = mimages[name];
+			auto info = mimagesinfo[name];
+			auto aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+			LOG_INFO("CMD_GEN_MIPMAP name_color=%s\n", name.c_str());
+			LOG_INFO("CMD_GEN_MIPMAP name=%s\n", name.c_str());
+			if (name.find(ODEN_DEPTH_SIGNATURE) != std::string::npos)
+				aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (image)
+				gen_mipmap(ref.cmdbuf, image, aspect, info.extent.width, info.extent.height, info.mipLevels);
 		}
 
 		//CMD_DRAW_INDEX
