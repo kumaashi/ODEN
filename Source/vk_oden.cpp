@@ -943,30 +943,26 @@ oden::oden_present_graphics(
 	static VkSampler sampler_nearest = VK_NULL_HANDLE;
 	static VkSampler sampler_linear = VK_NULL_HANDLE;
 	static VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-	static std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 	static VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 	static VkPhysicalDeviceMemoryProperties devicememoryprop = {};
+	static VkPhysicalDeviceProperties gpu_props = {};
 
 	static std::map<std::string, VkRenderPass> mrenderpasses;
 	static std::map<std::string, VkFramebuffer> mframebuffers;
 	static std::map<std::string, VkImage> mimages;
 	static std::map<std::string, VkImageCreateInfo> mimagesinfo;
 	static std::map<std::string, VkImageView> mimageviews;
-	static std::map<std::string, VkClearValue> mclearvalues;
 	static std::map<std::string, VkBuffer> mbuffers;
 	static std::map<std::string, VkMemoryRequirements> mmemreqs;
 	static std::map<std::string, VkDeviceMemory> mdevmem;
-
-	static std::map<std::string, uint64_t> mdescriptor_set_offset;
 	static std::map<std::string, VkPipeline> mpipelines;
 	static std::map<std::string, VkPipelineBindPoint> mpipeline_bindpoints;
+	static std::vector<DeviceBuffer> devicebuffer;
+	static std::vector<VkDescriptorSet> vdescriptor_sets;
 
 	static uint32_t backbuffer_index = 0;
 	static uint64_t frame_count = 0;
 
-	static std::vector<DeviceBuffer> devicebuffer;
-	static std::vector<VkDescriptorSet> vdescriptor_sets;
-	static VkPhysicalDeviceProperties gpu_props = {};
 
 	struct selected_handle {
 		std::string renderpass_name;
@@ -1228,7 +1224,7 @@ oden::oden_present_graphics(
 		sampler_nearest = create_sampler(device, false);
 		sampler_linear = create_sampler(device, true);
 		descriptor_pool = create_descriptor_pool(device, count * RDT_SLOT_MAX);
-
+		std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 		{
 			VkShaderStageFlags shader_stages = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT;
 			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_srv;
