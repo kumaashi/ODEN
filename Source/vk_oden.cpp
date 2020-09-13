@@ -884,6 +884,27 @@ gen_mipmap(
 	}
 }
 
+static void
+map_and_copy(
+	VkDevice device,
+	const char *name,
+	VkDeviceMemory devmem,
+	VkDeviceSize start,
+	VkDeviceSize size,
+	void *data)
+{
+	void *dest = nullptr;
+	vkMapMemory(device, devmem, start, size, 0, (void **)&dest);
+	if (dest) {
+		LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name, dest);
+		memcpy(dest, data, size);
+		vkUnmapMemory(device, devmem);
+	} else {
+		LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name, dest);
+		Sleep(1000);
+	}
+}
+
 void
 oden::oden_present_graphics(
 	const char * appname, std::vector<cmd> & vcmd,
@@ -1426,17 +1447,13 @@ oden::oden_present_graphics(
 			//COLOR VIEW
 			auto imageview_color = mimageviews[name_color];
 			if (imageview_color == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
 				imageview_color = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT);
 				mimageviews[name_color] = imageview_color;
-				LOG_MAIN("create_image_view imageview_color=0x%p\n", imageview_color);
 				if (is_backbuffer == false) {
 					for (int i = 0 ; i < maxmips; i++) {
 						auto imageview_color_mip = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT, i);
 						auto name_color_mip = oden_get_mipmap_name(name_color, i);
 						mimageviews[name_color_mip] = imageview_color_mip;
-						LOG_MAIN("create_image_view name=%s, imageview_color_mip=0x%p\n",
-							name_color_mip.c_str(), imageview_color_mip);
 					}
 				}
 			}
@@ -1469,10 +1486,8 @@ oden::oden_present_graphics(
 			//DEPTH VIEW
 			auto imageview_depth = mimageviews[name_depth];
 			if (imageview_depth == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_depth.c_str());
 				imageview_depth = create_image_view(device, image_depth, fmt_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
 				mimageviews[name_depth] = imageview_depth;
-				LOG_MAIN("create_image_view imageview_depth=0x%p\n", imageview_depth);
 			}
 
 			//RENDER PASS
@@ -1480,7 +1495,6 @@ oden::oden_present_graphics(
 			LOG_MAIN("query renderpass name=%s\n", name.c_str());
 			if (renderpass == nullptr) {
 				renderpass = create_renderpass(device, 1, is_backbuffer, fmt_color, fmt_depth);
-				LOG_MAIN("create_renderpass name=%s, ptr=%p\n", name_color.c_str(), renderpass);
 				mrenderpasses[name] = renderpass;
 			}
 			selected_renderpass = renderpass;
@@ -1493,10 +1507,7 @@ oden::oden_present_graphics(
 				imageviews.push_back(imageview_depth);
 				framebuffer = create_framebuffer(device, renderpass, imageviews, rect.w, rect.h);
 				mframebuffers[name] = framebuffer;
-				LOG_MAIN("create_framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
 			}
-			LOG_MAIN("found renderpass name=%s, ptr=%p\n", name_color.c_str(), renderpass);
-			LOG_MAIN("found framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
 		}
 
 		//CMD_SET_TEXTURE
@@ -1536,23 +1547,14 @@ oden::oden_present_graphics(
 				auto memreqs_buffer = get_buffer_memory_requirements(device, scratch_buffer);
 				ref.vscratch_buffers.push_back(scratch_buffer);
 				LOG_MAIN("create_buffer-staging name=%s\n", name.c_str());
-
 				{
-					auto devmem = alloc_devmem(std::string(name) + "_staging", memreqs_buffer.size,
+					auto name_staging = std::string(name) + "_staging";
+					auto devmem = alloc_devmem(name_staging, memreqs_buffer.size,
 							VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false);
 					ref.vscratch_devmems.push_back(devmem);
 					vkBindBufferMemory(device, scratch_buffer, devmem, 0);
 					void *dest = nullptr;
-					vkMapMemory(device, devmem, 0, memreqs_buffer.size, 0, (void **)&dest);
-					if (dest) {
-						LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-						memcpy(dest, data, size);
-						vkUnmapMemory(device, devmem);
-					} else {
-						LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-						Sleep(1000);
-					}
-
+					map_and_copy(device, name_staging.c_str(), devmem, 0, memreqs_buffer.size, data);
 					VkBufferImageCopy copy_region = {};
 					copy_region.bufferOffset = 0;
 					copy_region.bufferRowLength = w;
@@ -1573,10 +1575,8 @@ oden::oden_present_graphics(
 			//COLOR VIEW
 			auto imageview_color = mimageviews[name_color];
 			if (imageview_color == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
 				imageview_color = create_image_view(device, image_color, fmt_color, VK_IMAGE_ASPECT_COLOR_BIT);
 				mimageviews[name_color] = imageview_color;
-				LOG_MAIN("create_image_view imageview_color=0x%p\n", imageview_color);
 			}
 
 			if (type == CMD_SET_TEXTURE) {
@@ -1586,7 +1586,6 @@ oden::oden_present_graphics(
 				image_info.imageView = imageview_color;
 				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				update_descriptor_sets(device, descriptor_set_srv, &image_info, index, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				LOG_MAIN("vkUpdateDescriptorSets(image) start name=%s index=%d\n", name.c_str(), index);
 			}
 
 			if (type == CMD_SET_TEXTURE_UAV) {
@@ -1599,8 +1598,6 @@ oden::oden_present_graphics(
 				image_info.imageView = imageview_color;
 				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 				update_descriptor_sets(device, descriptor_set_uav, &image_info, index, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-				LOG_MAIN("vkUpdateDescriptorSets(compute image) imageview_color=%p, start name=%s index=%d\n",
-					imageview_color, name_color_mip.c_str(), index);
 			}
 		}
 
@@ -1631,16 +1628,7 @@ oden::oden_present_graphics(
 			}
 
 			//update
-			void *dest = nullptr;
-			vkMapMemory(device, devmem, start_offset, size, 0, (void **)&dest);
-			if (dest) {
-				LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-				memcpy(dest, data, size);
-				vkUnmapMemory(device, devmem);
-			} else {
-				LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-				Sleep(1000);
-			}
+			map_and_copy(device, name.c_str(), devmem, start_offset, size, data);
 
 			//update buffer reference
 			auto index = slot;
@@ -1648,10 +1636,7 @@ oden::oden_present_graphics(
 			buffer_info.buffer = buffer;
 			buffer_info.offset = start_offset;
 			buffer_info.range = size;
-
 			update_descriptor_sets(device, descriptor_set_cbv, &buffer_info, index, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			LOG_MAIN("vkUpdateDescriptorSets start name=%s, index=%d, start_offset=%d\n",
-				name.c_str(), index, start_offset);
 		}
 
 		//CMD_SET_VERTEX
@@ -1660,10 +1645,8 @@ oden::oden_present_graphics(
 			auto size = c.buf.size();
 			auto buffer = mbuffers[name];
 			if (buffer == nullptr) {
-				LOG_MAIN("create_buffer-vertex name=%s\n", name.c_str());
 				buffer = create_buffer(device, size);
 				mbuffers[name] = buffer;
-				LOG_MAIN("create_buffer-vertex name=%s Done\n", name.c_str());
 			}
 
 			//allocate buffer memreq and Bind
@@ -1673,18 +1656,7 @@ oden::oden_present_graphics(
 				auto devmem = alloc_devmem(name, memreqs.size,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
-				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
-
-				void *dest = nullptr;
-				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
-				if (dest) {
-					LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-					memcpy(dest, data, size);
-					vkUnmapMemory(device, devmem);
-				} else {
-					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-					Sleep(1000);
-				}
+				map_and_copy(device, name.c_str(), devmem, 0, memreqs.size, data);
 			}
 		}
 
@@ -1694,10 +1666,8 @@ oden::oden_present_graphics(
 			auto data = c.buf.data();
 			auto size = c.buf.size();
 			if (buffer == nullptr) {
-				LOG_MAIN("create_buffer-index name=%s\n", name.c_str());
 				buffer = create_buffer(device, size);
 				mbuffers[name] = buffer;
-				LOG_MAIN("create_buffer-index name=%s Done\n", name.c_str());
 			}
 
 			//allocate buffer memreq and Bind
@@ -1707,18 +1677,7 @@ oden::oden_present_graphics(
 				auto devmem = alloc_devmem(name, memreqs.size,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
-				LOG_MAIN("vkBindBufferMemory index name=%s Done\n", name.c_str());
-
-				void *dest = nullptr;
-				vkMapMemory(device, devmem, 0, memreqs.size, 0, (void **)&dest);
-				if (dest) {
-					LOG_MAIN("vkMapMemory index name=%s addr=0x%p\n", name.c_str(), dest);
-					memcpy(dest, data, size);
-					vkUnmapMemory(device, devmem);
-				} else {
-					LOG_ERR("vkMapMemory name=%s addr=0x%p\n", name.c_str(), dest);
-					Sleep(1000);
-				}
+				map_and_copy(device, name.c_str(), devmem, 0, memreqs.size, data);
 			}
 		}
 
