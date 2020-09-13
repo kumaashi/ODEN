@@ -43,12 +43,6 @@
 
 #define ODEN_VK_DEBUG_MODE
 
-#ifdef ODEN_VK_DEBUG_MODE
-#define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
-#else
-#define LOG_MAIN(...) {}
-#endif //ODEN_VK_DEBUG_MODE
-
 #define LOG_INFO(...) printf("INFO : " __FUNCTION__ ":" __VA_ARGS__)
 #define LOG_ERR(...) printf("ERR : " __FUNCTION__ ":" __VA_ARGS__)
 
@@ -103,7 +97,7 @@ static void compile_glsl2spirv(
 
 	basecmd += soption;
 	basecmd += " --D " + type + " " + shaderfile + std::string(" -o ") + tempfilename;
-	LOG_MAIN("basecmd : %s\n", basecmd.c_str());
+	LOG_INFO("basecmd : %s\n", basecmd.c_str());
 
 	fork_process_wait((char *)basecmd.c_str());
 	{
@@ -159,7 +153,7 @@ bind_debug_fn(
 	if (cb)
 		cb(instance, &ext, nullptr, &callback);
 	else
-		LOG_MAIN("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
+		LOG_INFO("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
 }
 
 [[ nodiscard ]]
@@ -724,7 +718,7 @@ create_gpipeline_from_file(
 		vshadermodules.push_back(module);
 		sstage.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		sstage.module = module;
-		LOG_MAIN("INFO : Enable VS : module=%p\n", module);
+		LOG_INFO("INFO : Enable VS : module=%p\n", module);
 		vsstageinfo.push_back(sstage);
 	}
 	if (!gs.empty()) {
@@ -732,7 +726,7 @@ create_gpipeline_from_file(
 		vshadermodules.push_back(module);
 		sstage.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
 		sstage.module = module;
-		LOG_MAIN("INFO : Enable GS : module=%p\n", module);
+		LOG_INFO("INFO : Enable GS : module=%p\n", module);
 		vsstageinfo.push_back(sstage);
 	}
 	if (!ps.empty()) {
@@ -740,7 +734,7 @@ create_gpipeline_from_file(
 		vshadermodules.push_back(module);
 		sstage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		sstage.module = module;
-		LOG_MAIN("INFO : Enable PS : module=%p\n", module);
+		LOG_INFO("INFO : Enable PS : module=%p\n", module);
 		vsstageinfo.push_back(sstage);
 	}
 
@@ -877,7 +871,7 @@ map_and_copy(
 	void *dest = nullptr;
 	vkMapMemory(device, devmem, start, size, 0, (void **)&dest);
 	if (dest) {
-		LOG_MAIN("vkMapMemory name=%s addr=0x%p\n", name, dest);
+		LOG_INFO("vkMapMemory name=%s addr=0x%p\n", name, dest);
 		memcpy(dest, data, size);
 		vkUnmapMemory(device, devmem);
 	} else {
@@ -965,17 +959,17 @@ oden::oden_present_graphics(
 	auto alloc_descriptor_sets = [&]() {
 		static uint64_t index = 0;
 		auto ret = vdescriptor_sets[index++ % vdescriptor_sets.size()];
-		LOG_MAIN("%s : alloc_descriptor_sets handle=%p\n", __func__, ret);
+		LOG_INFO("%s : alloc_descriptor_sets handle=%p\n", __func__, ret);
 		return (ret);
 	};
 
 	auto alloc_devmem = [&](auto name, VkDeviceSize size, VkMemoryPropertyFlags flags, bool is_entry = true) {
 		for (auto & x : mdevmem)
-			LOG_MAIN("DEBUG alloc_devmem : addr=%p, name=%s\n", x.second, x.first.c_str());
+			LOG_INFO("DEBUG alloc_devmem : addr=%p, name=%s\n", x.second, x.first.c_str());
 
 		VkDeviceMemory devmem = mdevmem[name];
 		if (devmem != nullptr) {
-			LOG_MAIN("%s : already allocated name=%s\n", __func__, name.c_str());
+			LOG_INFO("%s : already allocated name=%s\n", __func__, name.c_str());
 			return devmem;
 		}
 
@@ -993,7 +987,7 @@ oden::oden_present_graphics(
 		}
 		vkAllocateMemory(device, &ma_info, nullptr, &devmem);
 		if (is_entry) {
-			LOG_MAIN("%s : allocated name=%s\n", __func__, name.c_str());
+			LOG_INFO("%s : allocated name=%s\n", __func__, name.c_str());
 			if (devmem)
 				mdevmem[name] = devmem;
 			else
@@ -1026,7 +1020,7 @@ oden::oden_present_graphics(
 				vinstance_ext_names.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 			if (name == VK_KHR_WIN32_SURFACE_EXTENSION_NAME)
 				vinstance_ext_names.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-			LOG_MAIN("vkEnumerateInstanceExtensionProperties : name=%s\n", name.c_str());
+			LOG_INFO("vkEnumerateInstanceExtensionProperties : name=%s\n", name.c_str());
 		}
 
 		drcc_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
@@ -1068,7 +1062,7 @@ oden::oden_present_graphics(
 
 		//Enumaration GPU's
 		err = vkEnumeratePhysicalDevices(inst, &gpu_count, NULL);
-		LOG_MAIN("gpu_count=%d\n", gpu_count);
+		LOG_INFO("gpu_count=%d\n", gpu_count);
 		if (gpu_count < 1) {
 			LOG_ERR("-------------------------------------------------------\n");
 			LOG_ERR(" Your Vulkan rendering system are belong to died.\n");
@@ -1079,13 +1073,13 @@ oden::oden_present_graphics(
 		err = vkEnumerateDeviceExtensionProperties(gpudev, NULL, &device_extension_count, NULL);
 		std::vector<VkExtensionProperties> vdevice_extensions(device_extension_count);
 		err = vkEnumerateDeviceExtensionProperties(gpudev, NULL, &device_extension_count, vdevice_extensions.data());
-		LOG_MAIN("vkEnumerateDeviceExtensionProperties : device_extension_count = %d, VK_KHR_SWAPCHAIN_EXTENSION_NAME=%s\n",
+		LOG_INFO("vkEnumerateDeviceExtensionProperties : device_extension_count = %d, VK_KHR_SWAPCHAIN_EXTENSION_NAME=%s\n",
 			vdevice_extensions.size(), VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		for (auto x : vdevice_extensions) {
 			auto name = std::string(x.extensionName);
 			if (name == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 				ext_names.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-			LOG_MAIN("vkEnumerateDeviceExtensionProperties : extensionName=%s\n", x.extensionName);
+			LOG_INFO("vkEnumerateDeviceExtensionProperties : extensionName=%s\n", x.extensionName);
 		}
 
 		//Enumeration Queue attributes.
@@ -1094,29 +1088,29 @@ oden::oden_present_graphics(
 		LOG_INFO("minUniformBufferOffsetAlignment=%p\n", (void *)gpu_props.limits.minUniformBufferOffsetAlignment);
 		LOG_INFO("minStorageBufferOffsetAlignment=%p\n", (void *)gpu_props.limits.minStorageBufferOffsetAlignment);
 		vkGetPhysicalDeviceQueueFamilyProperties(gpudev, &queue_family_count, NULL);
-		LOG_MAIN("vkGetPhysicalDeviceQueueFamilyProperties : queue_family_count=%d\n", queue_family_count);
+		LOG_INFO("vkGetPhysicalDeviceQueueFamilyProperties : queue_family_count=%d\n", queue_family_count);
 		std::vector<VkQueueFamilyProperties> vqueue_props(queue_family_count);
 		vkGetPhysicalDeviceQueueFamilyProperties(gpudev, &queue_family_count, vqueue_props.data());
 		vkGetPhysicalDeviceFeatures(gpudev, &physDevFeatures);
 		for (uint32_t i = 0; i < queue_family_count; i++) {
 			auto flags = vqueue_props[i].queueFlags;
 			if (flags & VK_QUEUE_GRAPHICS_BIT) {
-				LOG_MAIN("index=%d : VK_QUEUE_GRAPHICS_BIT\n", i);
+				LOG_INFO("index=%d : VK_QUEUE_GRAPHICS_BIT\n", i);
 				if (graphics_queue_family_index == UINT32_MAX)
 					graphics_queue_family_index = i;
 			}
 
 			if (flags & VK_QUEUE_COMPUTE_BIT)
-				LOG_MAIN("index=%d : VK_QUEUE_COMPUTE_BIT\n", i);
+				LOG_INFO("index=%d : VK_QUEUE_COMPUTE_BIT\n", i);
 
 			if (flags & VK_QUEUE_TRANSFER_BIT)
-				LOG_MAIN("index=%d : VK_QUEUE_TRANSFER_BIT\n", i);
+				LOG_INFO("index=%d : VK_QUEUE_TRANSFER_BIT\n", i);
 
 			if (flags & VK_QUEUE_SPARSE_BINDING_BIT)
-				LOG_MAIN("index=%d : VK_QUEUE_SPARSE_BINDING_BIT\n", i);
+				LOG_INFO("index=%d : VK_QUEUE_SPARSE_BINDING_BIT\n", i);
 
 			if (flags & VK_QUEUE_PROTECTED_BIT)
-				LOG_MAIN("index=%d : VK_QUEUE_PROTECTED_BIT\n", i);
+				LOG_INFO("index=%d : VK_QUEUE_PROTECTED_BIT\n", i);
 		}
 
 		//Create Device and Queue
@@ -1161,7 +1155,7 @@ oden::oden_present_graphics(
 		vkGetPhysicalDeviceSurfaceSupportKHR(gpudev, 0, surface, &presentSupport);
 		VkSurfaceCapabilitiesKHR capabilities = {};
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpudev, surface, &capabilities);
-		LOG_MAIN("vkGetPhysicalDeviceSurfaceSupportKHR Done\n", __LINE__);
+		LOG_INFO("vkGetPhysicalDeviceSurfaceSupportKHR Done\n", __LINE__);
 
 		VkSwapchainCreateInfoKHR sc_info = {};
 		sc_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1196,7 +1190,7 @@ oden::oden_present_graphics(
 			temp.resize(count);
 			vkGetSwapchainImagesKHR(device, swapchain, &count, temp.data());
 			for (auto & x : temp)
-				LOG_MAIN("vkGetSwapchainImagesKHR temp = %p\n", x);
+				LOG_INFO("vkGetSwapchainImagesKHR temp = %p\n", x);
 
 			for (int i = 0 ; i < temp.size(); i++) {
 				auto name_color = oden_get_backbuffer_name(i);
@@ -1246,47 +1240,47 @@ oden::oden_present_graphics(
 			ref.descriptor_set_cbv = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_CBV]);
 			ref.descriptor_set_uav = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_UAV]);
 
-			LOG_MAIN("backbuffer cmdbuf[%d] = %p\n", i, ref.cmdbuf);
-			LOG_MAIN("backbuffer fence[%d] = %p\n", i, ref.fence);
-			LOG_MAIN("ref.descriptor_set_srv[%d] = 0x%p\n", i, ref.descriptor_set_srv);
-			LOG_MAIN("ref.descriptor_set_cbv[%d] = 0x%p\n", i, ref.descriptor_set_cbv);
-			LOG_MAIN("ref.descriptor_set_uav[%d] = 0x%p\n", i, ref.descriptor_set_uav);
+			LOG_INFO("backbuffer cmdbuf[%d] = %p\n", i, ref.cmdbuf);
+			LOG_INFO("backbuffer fence[%d] = %p\n", i, ref.fence);
+			LOG_INFO("ref.descriptor_set_srv[%d] = 0x%p\n", i, ref.descriptor_set_srv);
+			LOG_INFO("ref.descriptor_set_cbv[%d] = 0x%p\n", i, ref.descriptor_set_cbv);
+			LOG_INFO("ref.descriptor_set_uav[%d] = 0x%p\n", i, ref.descriptor_set_uav);
 		}
 
-		LOG_MAIN("VkInstance inst = %p\n", inst);
-		LOG_MAIN("VkPhysicalDevice gpudev = %p\n", gpudev);
-		LOG_MAIN("VkDevice device = %p\n", device);
-		LOG_MAIN("VkQueue graphics_queue = %p\n", graphics_queue);
-		LOG_MAIN("VkSurfaceKHR surface = %p\n", surface);
-		LOG_MAIN("VkSwapchainKHR swapchain = %p\n", swapchain);
-		LOG_MAIN("vkCreateCommandPool cmd_pool = %p\n", cmd_pool);
-		LOG_MAIN("vkCreateDescriptorPool descriptor_pool = %p\n", descriptor_pool);
-		LOG_MAIN("vkCreatePipelineLayout = %p\n", pipeline_layout);
+		LOG_INFO("VkInstance inst = %p\n", inst);
+		LOG_INFO("VkPhysicalDevice gpudev = %p\n", gpudev);
+		LOG_INFO("VkDevice device = %p\n", device);
+		LOG_INFO("VkQueue graphics_queue = %p\n", graphics_queue);
+		LOG_INFO("VkSurfaceKHR surface = %p\n", surface);
+		LOG_INFO("VkSwapchainKHR swapchain = %p\n", swapchain);
+		LOG_INFO("vkCreateCommandPool cmd_pool = %p\n", cmd_pool);
+		LOG_INFO("vkCreateDescriptorPool descriptor_pool = %p\n", descriptor_pool);
+		LOG_INFO("vkCreatePipelineLayout = %p\n", pipeline_layout);
 	}
 
-	LOG_MAIN("frame_count=%llu\n", frame_count);
+	LOG_INFO("frame_count=%llu\n", frame_count);
 
 	//Determine resource index.
 	auto & ref = devicebuffer[backbuffer_index];
 	uint32_t present_index = 0;
 
-	LOG_MAIN("vkWaitForFences[%d]\n", backbuffer_index);
+	LOG_INFO("vkWaitForFences[%d]\n", backbuffer_index);
 	auto fence_status = vkGetFenceStatus(device, ref.fence);
 	if (fence_status == VK_SUCCESS) {
-		LOG_MAIN("The fence specified by fence is signaled.\n");
+		LOG_INFO("The fence specified by fence is signaled.\n");
 		auto wait_result = vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
-		LOG_MAIN("vkWaitForFences[%d] Done wait_result=%d(%s)\n", backbuffer_index, wait_result, wait_result ? "NG" : "OK");
+		LOG_INFO("vkWaitForFences[%d] Done wait_result=%d(%s)\n", backbuffer_index, wait_result, wait_result ? "NG" : "OK");
 		vkResetFences(device, 1, &ref.fence);
 	}
 
 	if (fence_status == VK_NOT_READY)
-		LOG_MAIN("The fence specified by fence is unsignaled.\n");
+		LOG_INFO("The fence specified by fence is unsignaled.\n");
 
 	if (fence_status == VK_ERROR_DEVICE_LOST)
-		LOG_MAIN("The device has been lost.\n");
+		LOG_INFO("The device has been lost.\n");
 
 	auto acquire_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, ref.fence, &present_index);
-	LOG_MAIN("vkAcquireNextImageKHR acquire_result=%d, present_index=%d, ref.fence=%p\n",
+	LOG_INFO("vkAcquireNextImageKHR acquire_result=%d, present_index=%d, ref.fence=%p\n",
 		acquire_result, present_index, ref.fence);
 
 	//Destroy scratch resources
@@ -1343,7 +1337,7 @@ oden::oden_present_graphics(
 	};
 
 	auto setup_renderpass = [&](auto name, auto info, auto renderpass) {
-		LOG_MAIN("setup_renderpass name=%s\n", name.c_str());
+		LOG_INFO("setup_renderpass name=%s\n", name.c_str());
 		rec.info = info;
 		rec.renderpass = renderpass;
 		rec.renderpass_name = name;
@@ -1351,18 +1345,18 @@ oden::oden_present_graphics(
 
 	auto begin_renderpass = [&]() {
 		if (rec.renderpass) {
-			LOG_MAIN("!!!!!!!!!!!!!!!!!!!! vkCmdBeginRenderPass name=%s\n", rec.renderpass_name.c_str());
+			LOG_INFO("!!!!!!!!!!!!!!!!!!!! vkCmdBeginRenderPass name=%s\n", rec.renderpass_name.c_str());
 			vkCmdBeginRenderPass(ref.cmdbuf, &rec.info, VK_SUBPASS_CONTENTS_INLINE);
 			rec.renderpass_commited = rec.renderpass;
 			rec.submit_renderpass = true;
 		} else {
-			LOG_MAIN("Failed vkCmdBeginRenderPass.\n");
+			LOG_INFO("Failed vkCmdBeginRenderPass.\n");
 		}
 	};
 
 	auto end_renderpass = [&]() {
 		if (rec.submit_renderpass) {
-			LOG_MAIN("!!!!!!!!!!!!!!!!!!!! vkCmdEndRenderPass name=%s\n", rec.renderpass_name.c_str());
+			LOG_INFO("!!!!!!!!!!!!!!!!!!!! vkCmdEndRenderPass name=%s\n", rec.renderpass_name.c_str());
 			vkCmdEndRenderPass(ref.cmdbuf);
 			rec.submit_renderpass = false;
 		}
@@ -1386,12 +1380,12 @@ oden::oden_present_graphics(
 
 	//Filter Phase
 	VkRenderPass selected_renderpass = nullptr;
-	LOG_MAIN("vcmd.size=%lu\n", vcmd.size());
+	LOG_INFO("vcmd.size=%lu\n", vcmd.size());
 	cmd_index = 0;
 	for (auto & c : vcmd) {
 		auto type = c.type;
 		auto name = c.name;
-		LOG_MAIN("prepare HEAD : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
+		LOG_INFO("prepare HEAD : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
 
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
@@ -1426,8 +1420,9 @@ oden::oden_present_graphics(
 				VkDeviceMemory devmem = alloc_devmem(name_color, memreqs.size, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 				vkBindImageMemory(device, image_color, devmem, 0);
 				mmemreqs[name_color] = memreqs;
-				get_layout(name_color, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0, maxmips);
+				auto next_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				get_layout(name_color, next_layout);
+				auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, next_layout, 0, maxmips);
 				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
 
@@ -1466,8 +1461,9 @@ oden::oden_present_graphics(
 				vkBindImageMemory(device, image_depth, devmem, 0);
 				mmemreqs[name_depth] = memreqs;
 
-				get_layout(name_depth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, 1);
+				auto next_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				get_layout(name_depth, next_layout);
+				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, next_layout, 0, 1);
 				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
 
@@ -1480,7 +1476,7 @@ oden::oden_present_graphics(
 
 			//RENDER PASS
 			auto renderpass = mrenderpasses[name];
-			LOG_MAIN("query renderpass name=%s\n", name.c_str());
+			LOG_INFO("query renderpass name=%s\n", name.c_str());
 			if (renderpass == nullptr) {
 				renderpass = create_renderpass(device, 1, fmt_color, fmt_depth);
 				mrenderpasses[name] = renderpass;
@@ -1503,7 +1499,7 @@ oden::oden_present_graphics(
 			uint32_t w = c.set_texture.rect.w;
 			uint32_t h = c.set_texture.rect.h;
 			auto slot = c.set_texture.slot;
-			LOG_MAIN("DEBUG : name=%s, c.set_texture.miplevel=%d\n", name.c_str(), c.set_texture.miplevel);
+			LOG_INFO("DEBUG : name=%s, c.set_texture.miplevel=%d\n", name.c_str(), c.set_texture.miplevel);
 
 			//prepare for context roll.
 			if (rec.renderpass_commited)
@@ -1520,7 +1516,7 @@ oden::oden_present_graphics(
 						VK_IMAGE_USAGE_STORAGE_BIT |
 						VK_IMAGE_USAGE_SAMPLED_BIT, 1);
 				mimages[name_color] = image_color;
-				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
+				LOG_INFO("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
 			}
 
 			//allocate color memreq and Bind
@@ -1534,7 +1530,7 @@ oden::oden_present_graphics(
 				auto scratch_buffer = create_buffer(device, size);
 				auto memreqs_buffer = get_buffer_memory_requirements(device, scratch_buffer);
 				ref.vscratch_buffers.push_back(scratch_buffer);
-				LOG_MAIN("create_buffer-staging name=%s\n", name.c_str());
+				LOG_INFO("create_buffer-staging name=%s\n", name.c_str());
 				{
 					auto name_staging = std::string(name) + "_staging";
 					auto devmem = alloc_devmem(name_staging, memreqs_buffer.size,
@@ -1550,13 +1546,14 @@ oden::oden_present_graphics(
 					copy_region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
 					copy_region.imageOffset = {0, 0, 0};
 					copy_region.imageExtent = {w, h, 1};
-
+					
+					auto next_layout = VK_IMAGE_LAYOUT_GENERAL;
+					get_layout(name_color, next_layout);
 					auto before_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-					auto after_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+					auto after_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, next_layout);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &before_barrier);
 					vkCmdCopyBufferToImage(ref.cmdbuf, scratch_buffer, image_color, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
 					vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &after_barrier);
-					get_layout(name_color, VK_IMAGE_LAYOUT_GENERAL);
 				}
 				mmemreqs[name_color] = memreqs;
 			}
@@ -1599,10 +1596,10 @@ oden::oden_present_graphics(
 
 			auto buffer = mbuffers[name];
 			if (buffer == nullptr) {
-				LOG_MAIN("create_buffer-constant name=%s\n", name.c_str());
+				LOG_INFO("create_buffer-constant name=%s\n", name.c_str());
 				buffer = create_buffer(device, size * heapcount);
 				mbuffers[name] = buffer;
-				LOG_MAIN("create_buffer-constant name=%s Done\n", name.c_str());
+				LOG_INFO("create_buffer-constant name=%s Done\n", name.c_str());
 			}
 
 			//allocate buffer memreq and Bind
@@ -1613,7 +1610,7 @@ oden::oden_present_graphics(
 				devmem = alloc_devmem(name, memreqs.size,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 				vkBindBufferMemory(device, buffer, devmem, 0);
-				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
+				LOG_INFO("vkBindBufferMemory name=%s Done\n", name.c_str());
 			}
 
 			//update
@@ -1699,7 +1696,7 @@ oden::oden_present_graphics(
 				}
 			}
 		}
-		LOG_MAIN("prepare : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
+		LOG_INFO("prepare : cmd_index = %04d name=%s: %s\n", cmd_index, name.c_str(), oden_get_cmd_name(type));
 		cmd_index++;
 	}
 
@@ -1845,10 +1842,11 @@ oden::oden_present_graphics(
 			clearColor.float32[3] = c.clear.color[3];
 			VkImageSubresourceRange image_range_color = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-			auto layout = get_layout(name_color, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			auto barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, layout, VK_IMAGE_LAYOUT_GENERAL);
-			auto barrier_after = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+			auto next_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			auto layout = get_layout(name_color, next_layout);
+			auto barrier_before = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, layout, VK_IMAGE_LAYOUT_GENERAL);
+			auto barrier_after = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, next_layout);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
 			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
@@ -1867,11 +1865,11 @@ oden::oden_present_graphics(
 			//Depth
 			VkClearDepthStencilValue cdsv = {1.0f, 0};
 			VkImageSubresourceRange image_range_depth = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
-
-			auto layout = get_layout(name_depth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-			auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, layout, VK_IMAGE_LAYOUT_GENERAL);
-			auto barrier_after = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+			auto next_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			auto layout = get_layout(name_depth, next_layout);
+			auto barrier_before = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, layout, VK_IMAGE_LAYOUT_GENERAL);
+			auto barrier_after = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, next_layout);
+			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearDepthStencilImage(ref.cmdbuf, image_depth, VK_IMAGE_LAYOUT_GENERAL, &cdsv, 1, &image_range_depth);
 			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
@@ -1938,7 +1936,7 @@ oden::oden_present_graphics(
 	//for debug.
 	{
 		for (auto & pair : mimages) {
-			LOG_MAIN("handle=0x%p : name=%s\n", pair.second, pair.first.c_str());
+			LOG_INFO("handle=0x%p : name=%s\n", pair.second, pair.first.c_str());
 		}
 	}
 
@@ -1956,13 +1954,13 @@ oden::oden_present_graphics(
 	submit_info.pSignalSemaphores = nullptr;
 	{
 		auto fence_status = vkGetFenceStatus(device, ref.fence);
-		LOG_MAIN("BEFORE vkGetFenceStatus fence_status=%d\n", fence_status);
+		LOG_INFO("BEFORE vkGetFenceStatus fence_status=%d\n", fence_status);
 		vkResetFences(device, 1, &ref.fence);
 	}
 
-	LOG_MAIN("vkQueueSubmit backbuffer_index=%d, fence=%p\n", backbuffer_index, ref.fence);
+	LOG_INFO("vkQueueSubmit backbuffer_index=%d, fence=%p\n", backbuffer_index, ref.fence);
 	auto submit_result = vkQueueSubmit(graphics_queue, 1, &submit_info, ref.fence);
-	LOG_MAIN("vkQueueSubmit Done backbuffer_index=%d, fence=%p, submit_result=%d\n", backbuffer_index, ref.fence, submit_result);
+	LOG_INFO("vkQueueSubmit Done backbuffer_index=%d, fence=%p, submit_result=%d\n", backbuffer_index, ref.fence, submit_result);
 
 	VkPresentInfoKHR present_info = {};
 	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1977,9 +1975,9 @@ oden::oden_present_graphics(
 	vkQueuePresentKHR(graphics_queue, &present_info);
 
 	backbuffer_index = frame_count % count;
-	LOG_MAIN("=======================================================================\n");
-	LOG_MAIN("FRAME Done frame_count=%d\n", frame_count);
-	LOG_MAIN("=======================================================================\n");
+	LOG_INFO("=======================================================================\n");
+	LOG_INFO("FRAME Done frame_count=%d\n", frame_count);
+	LOG_INFO("=======================================================================\n");
 
 	frame_count++;
 }

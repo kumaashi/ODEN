@@ -291,6 +291,7 @@ int main()
 		SetShader(vcmd, "./shaders/present", is_update, false, false);
 		SetTexture(vcmd, offscreen_name, 1);
 		SetTexture(vcmd, bloomscreen_name, 3);
+		SetTexture(vcmd, offscreen_depth_name, 4);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 5);
@@ -298,7 +299,6 @@ int main()
 		//Draw Depth
 		SetRenderTarget(vcmd, backbuffer_name, Width, Height, true);
 		SetShader(vcmd, "./shaders/showdepth", is_update, false, false);
-		SetTexture(vcmd, offscreen_depth_name, 4);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 6);

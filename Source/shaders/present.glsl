@@ -61,8 +61,11 @@ void main()
 	vec2 uv = v_uv;
 	vec4 col = texture(tex[1], uv, 0.0);
 	vec4 blurcol = texture(tex[3], uv, 0.0);
-	col.x = texture(tex[1], uv + vec2(0.001, 0.001), 0).x;
-	col.z = texture(tex[1], uv - vec2(0.001, 0.001), 0).z;
-	out_color = col + blurcol;
+	float fao = texture(tex[4], uv, 0.0).r;
+	float d = 0.0025;
+	fao = pow(fao, 32);
+	col.x = texture(tex[1], uv + vec2(d, 0.0), 0).x;
+	col.z = texture(tex[1], uv - vec2(d, 0.0), 0).z;
+	out_color = (fao * col) + blurcol;
 }
 #endif //_PS_
