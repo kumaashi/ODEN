@@ -913,7 +913,7 @@ oden::oden_present_graphics(
 		std::vector<VkBuffer> vscratch_buffers;
 		std::vector<VkDeviceMemory> vscratch_devmems;
 	};
-	
+
 	static VkInstance inst = VK_NULL_HANDLE;
 	static VkPhysicalDevice gpudev = VK_NULL_HANDLE;
 	static VkDevice device = VK_NULL_HANDLE;
@@ -1776,7 +1776,7 @@ oden::oden_present_graphics(
 			rp_begin.clearValueCount = 0;
 			rp_begin.pClearValues = nullptr;
 			setup_renderpass(name, rp_begin, renderpass);
-			
+
 			//bar
 			auto name_color = name;
 			auto name_depth = oden_get_depth_render_target_name(name);
@@ -1883,7 +1883,7 @@ oden::oden_present_graphics(
 			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			auto dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			auto layout = get_layout(name, VK_IMAGE_LAYOUT_GENERAL);
-			if(name.find(ODEN_DEPTH_SIGNATURE) != std::string::npos)
+			if (name.find(ODEN_DEPTH_SIGNATURE) != std::string::npos)
 				aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 			auto barrier = get_barrier(image, aspect, layout, VK_IMAGE_LAYOUT_GENERAL);
 			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier);
