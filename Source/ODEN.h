@@ -79,11 +79,6 @@ struct cmd {
 			bool is_backbuffer;
 		} set_render_target;
 
-		struct set_depth_render_target_t {
-			int fmt;
-			rect_t rect;
-		} set_depth_render_target;
-
 		struct set_texture_t {
 			int fmt;
 			int slot;
@@ -106,7 +101,6 @@ struct cmd {
 		struct set_id_t {
 			uint32_t id;
 		} set_id;
-		
 
 		struct set_shader_t {
 			bool is_update;
