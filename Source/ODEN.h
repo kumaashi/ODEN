@@ -39,7 +39,7 @@ namespace oden
 
 enum {
 	CMD_NOP,
-	CMD_SET_BARRIER,
+	CMD_SET_PRESENT,
 	CMD_SET_RENDER_TARGET,
 	CMD_SET_TEXTURE,
 	CMD_SET_TEXTURE_UAV,
@@ -183,8 +183,6 @@ oden_get_cmd_name(int c)
 {
 	if (c == CMD_NOP)
 		return "CMD_NOP";
-	if (c == CMD_SET_BARRIER)
-		return "CMD_SET_BARRIER";
 	if (c == CMD_SET_RENDER_TARGET)
 		return "CMD_SET_RENDER_TARGET";
 	if (c == CMD_SET_TEXTURE)

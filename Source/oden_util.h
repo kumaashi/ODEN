@@ -27,13 +27,11 @@
 namespace odenutil
 {
 using namespace oden;
+void SetPresent(std::vector<cmd> & vcmd, std::string name);
 void ClearDepthRenderTarget(std::vector<cmd> & vcmd, std::string name, float value);
 void ClearRenderTarget(std::vector<cmd> & vcmd, std::string name, float col[4]);
 void DebugPrint(std::vector<cmd> & vcmd);
 void Dispatch(std::vector<cmd> & vcmd, std::string name, int x, int y, int z);
-void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name);
-void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name);
-void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name);
 void SetConstant(std::vector<cmd> & vcmd, std::string name, int slot, void *data, size_t size);
 void SetId(std::vector<cmd> & vcmd, std::string name, uint32_t id);
 void SetIndex(std::vector<cmd> & vcmd, std::string name, void *data, size_t size);

@@ -1731,7 +1731,7 @@ oden::oden_present_graphics(
 		auto type = c.type;
 		auto name = c.name;
 
-		if (type == CMD_PRESENT) {
+		if (type == CMD_SET_PRESENT) {
 			auto name_color = name;
 			auto image_color = mimages[name_color];
 			if (rec.submit_renderpass)
@@ -1745,29 +1745,15 @@ oden::oden_present_graphics(
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
 			auto rect = c.set_render_target.rect;
-			bool is_backbuffer = c.set_render_target.is_backbuffer;
 
 			//COLOR
 			auto name_color = name;
-			auto name_depth = oden_get_depth_render_target_name(name);
-			auto image_color = mimages[name_color];
-			auto image_depth = mimages[name_depth];
-			auto imageview_color = mimageviews[name_color];
-			auto imageview_depth = mimageviews[name_depth];
-			auto fmt_color = VK_FORMAT_R16G16B16A16_SFLOAT;
-			auto fmt_depth = VK_FORMAT_D32_SFLOAT;
 			auto renderpass = mrenderpasses[name];
 			auto framebuffer = mframebuffers[name];
-			if (is_backbuffer == true)
-				fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
-			int maxmips = oden_get_mipmap_max(rect.w, rect.h);
 
 			//prepare for context roll.
 			if (rec.submit_renderpass)
 				end_renderpass();
-
-			if (maxmips == 0)
-				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", rect.w, rect.h, name.c_str());
 
 			//setup viewport and scissor
 			LOG_INFO("vkCmdSetViewport name=%s\n", name.c_str());
@@ -1867,6 +1853,19 @@ oden::oden_present_graphics(
 			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
 			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_after);
+		}
+		if (type == CMD_SET_TEXTURE) {
+			auto name_color = name;
+			auto image_color = mimages[name_color];
+			auto aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			auto dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			auto in_layout = VK_IMAGE_LAYOUT_GENERAL;
+			if(mframebuffers.count(name))
+				in_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			auto barrier = get_barrier(image_color, aspect, in_layout, VK_IMAGE_LAYOUT_GENERAL);
+			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier);
 		}
 
 		//CMD_CLEAR_DEPTH

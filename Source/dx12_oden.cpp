@@ -375,25 +375,6 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 		auto fmt_color = DXGI_FORMAT_R16G16B16A16_FLOAT;
 		auto fmt_depth = DXGI_FORMAT_D32_FLOAT;
 
-		//CMD_SET_BARRIER
-		if (type == CMD_SET_BARRIER) {
-			D3D12_RESOURCE_TRANSITION_BARRIER tb {};
-			tb.pResource = nullptr;
-			if (c.set_barrier.to_present) {
-				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-				tb.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-			}
-			if (c.set_barrier.to_texture) {
-				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-				tb.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			}
-			if (c.set_barrier.to_rendertarget) {
-				tb.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-				tb.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-			}
-			mbarrier[name] = tb;
-		}
-
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
 			auto x = c.set_render_target.rect.x;

@@ -302,7 +302,7 @@ int main()
 		DrawIndex(vcmd, "present_draw", 0, _countof(idx_rect), 6);
 
 		//Present CMD to ODEN.
-		SetBarrierToPresent(vcmd, backbuffer_name);
+		SetPresent(vcmd, backbuffer_name);
 		oden_present_graphics(app_name, vcmd, hwnd, Width, Height, BufferMax, ResourceMax, ShaderSlotMax);
 
 		vcmd.clear();

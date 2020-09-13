@@ -26,39 +26,11 @@
 namespace odenutil
 {
 
-void SetBarrierToPresent(std::vector<cmd> & vcmd, std::string name)
+void SetPresent(std::vector<cmd> & vcmd, std::string name)
 {
 	cmd c = {};
-	c.type = CMD_SET_BARRIER;
+	c.type = CMD_SET_PRESENT;
 	c.name = name;
-	c.set_barrier.to_present = true;
-	vcmd.push_back(c);
-}
-
-void SetBarrierToRenderTarget(std::vector<cmd> & vcmd, std::string name)
-{
-	cmd c = {};
-	c.type = CMD_SET_BARRIER;
-	c.name = name;
-	c.set_barrier.to_rendertarget = true;
-	vcmd.push_back(c);
-}
-
-void SetBarrierToDepthRenderTarget(std::vector<cmd> & vcmd, std::string name)
-{
-	cmd c = {};
-	c.type = CMD_SET_BARRIER;
-	c.name = name;
-	c.set_barrier.to_depthrendertarget = true;
-	vcmd.push_back(c);
-}
-
-void SetBarrierToTexture(std::vector<cmd> & vcmd, std::string name)
-{
-	cmd c = {};
-	c.type = CMD_SET_BARRIER;
-	c.name = name;
-	c.set_barrier.to_texture = true;
 	vcmd.push_back(c);
 }
 
