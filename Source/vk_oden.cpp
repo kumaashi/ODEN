@@ -298,7 +298,6 @@ static VkRenderPass
 create_renderpass(
 	VkDevice device,
 	uint32_t color_num,
-	bool is_presentable,
 	VkFormat color_format,
 	VkFormat depth_format)
 {
@@ -309,13 +308,6 @@ create_renderpass(
 	auto initialLayoutDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	auto finalLayoutDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	auto loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-	if (is_presentable) {
-		initialLayoutColor = VK_IMAGE_LAYOUT_UNDEFINED;
-		finalLayoutColor = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		initialLayoutDepth = VK_IMAGE_LAYOUT_UNDEFINED;
-		finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
-		loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	}
 
 	int attachment_index = 0;
 	std::vector<VkAttachmentDescription> vattachments;
@@ -1490,7 +1482,7 @@ oden::oden_present_graphics(
 			auto renderpass = mrenderpasses[name];
 			LOG_MAIN("query renderpass name=%s\n", name.c_str());
 			if (renderpass == nullptr) {
-				renderpass = create_renderpass(device, 1, is_backbuffer, fmt_color, fmt_depth);
+				renderpass = create_renderpass(device, 1, fmt_color, fmt_depth);
 				mrenderpasses[name] = renderpass;
 			}
 			selected_renderpass = renderpass;
