@@ -143,7 +143,7 @@ bind_debug_fn(
 	VkInstance instance,
 	VkDebugReportCallbackCreateInfoEXT ext)
 {
-	VkDebugReportCallbackEXT callback;
+	VkDebugReportCallbackEXT callback = NULL;
 	auto cb = PFN_vkCreateDebugReportCallbackEXT(
 		vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
