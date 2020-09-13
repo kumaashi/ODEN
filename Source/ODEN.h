@@ -33,6 +33,7 @@
 
 namespace oden
 {
+#define ODEN_DEPTH_SIGNATURE "__depth__"
 
 enum {
 	CMD_NOP,
@@ -178,7 +179,7 @@ oden_get_mipmap_max(int w, int h)
 inline std::string
 oden_get_depth_render_target_name(std::string name)
 {
-	return name + "_depth";
+	return name + ODEN_DEPTH_SIGNATURE;
 }
 
 inline const char *

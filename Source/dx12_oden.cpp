@@ -531,7 +531,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				if (mgpu_handle.count(name) == 0) {
 					D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 					desc.Format = fmt_color;
-					if (name.find("depth") != std::string::npos)
+					if (name.find(ODEN_DEPTH_SIGNATURE) != std::string::npos)
 						desc.Format = DXGI_FORMAT_R32_FLOAT;
 					desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 					desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

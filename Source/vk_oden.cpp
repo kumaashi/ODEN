@@ -41,7 +41,7 @@
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "vulkan-1.lib")
 
-//#define ODEN_VK_DEBUG_MODE
+#define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_MAIN(...) printf("MAIN : " __VA_ARGS__)
@@ -178,6 +178,9 @@ create_image(
 	int maxmips,
 	VkImageCreateInfo *pinfo = nullptr)
 {
+	LOG_INFO("width=%d, height=%d, format=%x, usageFlags=%08X, maxmips=%d\n",
+		width, height, format, usageFlags, maxmips);
+
 	VkImage ret = VK_NULL_HANDLE;
 	VkImageCreateInfo info = {};
 
@@ -210,8 +213,12 @@ create_image_view(
 	VkDevice device,
 	VkImage image,
 	VkFormat format,
-	VkImageAspectFlags aspectMask, int miplevel = 0, VkImageViewCreateInfo *pinfo = nullptr)
+	VkImageAspectFlags aspectMask,
+	int miplevel = 0,
+	VkImageViewCreateInfo *pinfo = nullptr)
 {
+	LOG_INFO("image=%p, format=%d, aspectMask=%x, miplevel=%d\n",
+		image, format, aspectMask, miplevel);
 	VkImageView ret = VK_NULL_HANDLE;
 	VkImageViewCreateInfo info = {};
 
@@ -297,10 +304,10 @@ create_renderpass(
 {
 	VkRenderPass ret = VK_NULL_HANDLE;
 
-	auto initialLayoutColor = VK_IMAGE_LAYOUT_GENERAL;
-	auto finalLayoutColor = VK_IMAGE_LAYOUT_GENERAL;
-	auto initialLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
-	auto finalLayoutDepth = VK_IMAGE_LAYOUT_GENERAL;
+	auto initialLayoutColor = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	auto finalLayoutColor = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	auto initialLayoutDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	auto finalLayoutDepth = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	auto loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 	if (is_presentable) {
 		initialLayoutColor = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -341,11 +348,11 @@ create_renderpass(
 
 	VkAttachmentReference color_reference = {};
 	color_reference.attachment = 0;
-	color_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
+	color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference depth_reference = {};
 	depth_reference.attachment = 1;
-	depth_reference.layout = VK_IMAGE_LAYOUT_GENERAL;
+	depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	for (int i = 0 ; i < color_num; i++) {
 		auto ref = color_reference;
@@ -496,7 +503,8 @@ create_command_pool(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkCommandBuffer
+[[ nodiscard ]]
+static VkCommandBuffer
 create_command_buffer(
 	VkDevice device, VkCommandPool cmd_pool)
 {
@@ -513,9 +521,10 @@ create_command_buffer(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkDescriptorPool
+[[ nodiscard ]]
+static VkDescriptorPool
 create_descriptor_pool(
-	VkDevice device, uint32_t heapcount)
+	VkDevice device, uint32_t heapcount, uint32_t max_sets = 0xFF)
 {
 	VkDescriptorPool ret = nullptr;
 	VkDescriptorPoolCreateInfo info = {};
@@ -538,7 +547,7 @@ create_descriptor_pool(
 	info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	info.pNext = nullptr;
 	info.flags = 0;
-	info.maxSets = 0xFF; //todo
+	info.maxSets = max_sets;
 	info.poolSizeCount = (uint32_t)vpoolsizes.size();
 	info.pPoolSizes = vpoolsizes.data();
 	auto err = vkCreateDescriptorPool(device, &info, nullptr, &ret);
@@ -546,7 +555,8 @@ create_descriptor_pool(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkDescriptorSetLayout
+[[ nodiscard ]]
+static VkDescriptorSetLayout
 create_descriptor_set_layout(
 	VkDevice device,
 	std::vector<VkDescriptorSetLayoutBinding> & vdesc_setlayout_binding)
@@ -583,6 +593,7 @@ create_pipeline_layout(
 	info.pushConstantRangeCount  = 1;
 	info.pPushConstantRanges = &pushConstantRange;
 	auto err = vkCreatePipelineLayout(device, &info, NULL, &ret);
+
 	return (ret);
 }
 
@@ -608,6 +619,8 @@ create_cpipeline_from_file(
 	const char *filename,
 	VkPipelineLayout pipeline_layout)
 {
+	LOG_INFO("vkCreateComputePipelines filename=%s\n", filename);
+
 	VkPipeline ret = nullptr;
 	VkComputePipelineCreateInfo info = {};
 	std::vector<uint8_t> cs;
@@ -621,18 +634,14 @@ create_cpipeline_from_file(
 	auto module = create_shader_module(device, cs.data(), cs.size());
 	vshadermodules.push_back(module);
 	info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	info.stage.pName = "main"; //glsl spec
+	info.stage.pName = "main";
 	info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 	info.stage.module = module;
-	LOG_MAIN("INFO : Enable CS : module=%p\n", module);
-
 	info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 	info.pNext = nullptr;
 	info.flags = 0;
 	info.layout = pipeline_layout;
-	LOG_MAIN("%s : START vkCreateComputePipelines\n", __func__);
 	vkCreateComputePipelines(device, nullptr, 1, &info, nullptr, &ret);
-	LOG_MAIN("%s : END vkCreateComputePipelines\n", __func__);
 
 	for (auto & modules : vshadermodules)
 		if (modules)
@@ -641,13 +650,16 @@ create_cpipeline_from_file(
 	return (ret);
 }
 
-[[ nodiscard ]] static VkPipeline
+[[ nodiscard ]]
+static VkPipeline
 create_gpipeline_from_file(
 	VkDevice device,
 	const char *filename,
 	VkPipelineLayout pipeline_layout,
 	VkRenderPass renderpass)
 {
+	LOG_INFO("vkCreateComputePipelines filename=%s\n", filename);
+
 	VkPipeline ret = nullptr;
 	VkPipelineCacheCreateInfo pipelineCache = {};
 	VkPipelineVertexInputStateCreateInfo vi = {};
@@ -712,7 +724,6 @@ create_gpipeline_from_file(
 	std::vector<VkPipelineShaderStageCreateInfo> vsstageinfo;
 	std::vector<VkShaderModule> vshadermodules;
 
-	LOG_INFO("vkCreateGraphicsPipelines filename=%s\n", filename);
 	std::vector<uint8_t> vs;
 	std::vector<uint8_t> gs;
 	std::vector<uint8_t> ps; //todo fs
@@ -795,7 +806,6 @@ create_gpipeline_from_file(
 	info.renderPass = renderpass;
 	auto pipeline_result = vkCreateGraphicsPipelines(
 			device, nullptr, 1, &info, NULL, &ret);
-	LOG_INFO("Done filename=%s, pipeline=%p\n", filename, ret);
 	for (auto & module : vshadermodules)
 		if (module)
 			vkDestroyShaderModule(device, module, nullptr);
@@ -810,6 +820,8 @@ update_descriptor_sets(
 	uint32_t index,
 	VkDescriptorType type)
 {
+	LOG_INFO("descriptor_sets=0x%p, type=%d, wd_sets.dstArrayElement=%d\n",
+		descriptor_sets, type, index);
 	VkWriteDescriptorSet wd_sets = {};
 
 	wd_sets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -826,8 +838,6 @@ update_descriptor_sets(
 	if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		wd_sets.pBufferInfo = (const VkDescriptorBufferInfo *)pinfo;
 	vkUpdateDescriptorSets(device, 1, &wd_sets, 0, NULL);
-	LOG_MAIN("%s : descriptor_sets=0x%p, type=%d, wd_sets.dstArrayElement=%d\n",
-		__func__, descriptor_sets, type, wd_sets.dstArrayElement);
 }
 
 static void
@@ -837,27 +847,30 @@ gen_mipmap(
 	uint32_t width, uint32_t height, uint32_t miplevels)
 {
 	//https://github.com/SaschaWillems/Vulkan/blob/master/examples/texturemipmapgen/texturemipmapgen.cpp
-	for (int32_t i = 1; i < miplevels; i++) {
+	LOG_INFO("image=%p, width=%d, height=%d, miplevels=%d\n",
+		image, width, height, miplevels);
+
+	for (int32_t i = 1; i < miplevels - 1; i++) {
 		VkImageBlit image_blit = {};
 
 		image_blit.srcSubresource.aspectMask = aspect;
 		image_blit.srcSubresource.layerCount = 1;
-		image_blit.srcSubresource.mipLevel = i - 1;
-		image_blit.srcOffsets[1].x = int32_t(width >> (i - 1));
-		image_blit.srcOffsets[1].y = int32_t(height >> (i - 1));
+		image_blit.srcSubresource.mipLevel = i;
+		image_blit.srcOffsets[1].x = int32_t(width >> (i));
+		image_blit.srcOffsets[1].y = int32_t(height >> (i));
 		image_blit.srcOffsets[1].z = 1;
 
 		image_blit.dstSubresource.aspectMask = aspect;
 		image_blit.dstSubresource.layerCount = 1;
-		image_blit.dstSubresource.mipLevel = i;
-		image_blit.dstOffsets[1].x = int32_t(width >> i);
-		image_blit.dstOffsets[1].y = int32_t(height >> i);
+		image_blit.dstSubresource.mipLevel = (i + 1);
+		image_blit.dstOffsets[1].x = int32_t(width >> (i + 1));
+		image_blit.dstOffsets[1].y = int32_t(height >> (i + 1));
 		image_blit.dstOffsets[1].z = 1;
 
-		auto barrier_before_base = get_barrier(image, aspect, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, i - 1, 1, 0, 1);
-		auto barrier_after_base = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i - 1, 1, 0, 1);
-		auto barrier_before = get_barrier(image, aspect, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, i, 1, 0, 1);
-		auto barrier_after = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i, 1, 0, 1);
+		auto barrier_before_base = get_barrier(image, aspect, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, i, 1, 0, 1);
+		auto barrier_after_base = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i, 1, 0, 1);
+		auto barrier_before = get_barrier(image, aspect, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, i + 1, 1, 0, 1);
+		auto barrier_after = get_barrier(image, aspect, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, i + 1, 1, 0, 1);
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before_base);
 		vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 		if (aspect == VK_IMAGE_ASPECT_COLOR_BIT)
@@ -1346,7 +1359,6 @@ oden::oden_present_graphics(
 		if (rec.submit_renderpass) {
 			LOG_MAIN("!!!!!!!!!!!!!!!!!!!! vkCmdEndRenderPass name=%s\n", rec.renderpass_name.c_str());
 			vkCmdEndRenderPass(ref.cmdbuf);
-			//rec.renderpass_commited = nullptr;
 			rec.submit_renderpass = false;
 		}
 	};
@@ -1404,9 +1416,6 @@ oden::oden_present_graphics(
 						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips, &info);
 				mimages[name_color] = image_color;
 				mimagesinfo[name_color] = info;
-				LOG_MAIN("create_image name_color=%s, image_color=0x%p\n", name_color.c_str(), image_color);
-
-
 			}
 
 			//allocate color memreq and Bind
@@ -1458,14 +1467,14 @@ oden::oden_present_graphics(
 				vkBindImageMemory(device, image_depth, devmem, 0);
 				mmemreqs[name_depth] = memreqs;
 
-				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, 1);
+				auto barrier = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0, 1);
 				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
 			}
 
 			//DEPTH VIEW
 			auto imageview_depth = mimageviews[name_depth];
 			if (imageview_depth == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
+				LOG_MAIN("create_image_view name=%s\n", name_depth.c_str());
 				imageview_depth = create_image_view(device, image_depth, fmt_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
 				mimageviews[name_depth] = imageview_depth;
 				LOG_MAIN("create_image_view imageview_depth=0x%p\n", imageview_depth);
@@ -1815,6 +1824,7 @@ oden::oden_present_graphics(
 				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", w, h, name.c_str());
 
 			//setup viewport and scissor
+			LOG_INFO("vkCmdSetViewport name=%s\n", name.c_str());
 			VkViewport viewport = {};
 			viewport.width = (float)w;
 			viewport.height = (float)h;
@@ -1822,6 +1832,7 @@ oden::oden_present_graphics(
 			viewport.maxDepth = (float)1.0f;
 			vkCmdSetViewport(ref.cmdbuf, 0, 1, &viewport);
 
+			LOG_INFO("vkCmdSetScissor name=%s\n", name.c_str());
 			VkRect2D scissor = {};
 			scissor.extent.width = w;
 			scissor.extent.height = h;
@@ -1845,22 +1856,25 @@ oden::oden_present_graphics(
 
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
+			LOG_INFO("vkCmdBindVertexBuffers name=%s\n", name.c_str());
+
 			auto buffer = mbuffers[name];
 			VkDeviceSize offsets[1] = {0};
 			vkCmdBindVertexBuffers(ref.cmdbuf, 0, 1, &buffer, offsets);
-			LOG_MAIN("vkCmdBindVertexBuffers name=%s\n", name.c_str());
 		}
 
 		//CMD_SET_INDEX
 		if (type == CMD_SET_INDEX) {
+			LOG_INFO("vkCmdBindIndexBuffers name=%s\n", name.c_str());
+
 			auto buffer = mbuffers[name];
 			VkDeviceSize offset = {};
 			vkCmdBindIndexBuffer(ref.cmdbuf, buffer, offset, VK_INDEX_TYPE_UINT32);
-			LOG_MAIN("vkCmdBindIndexBuffers name=%s\n", name.c_str());
 		}
 
 		//CMD_SET_SHADER
 		if (type == CMD_SET_SHADER) {
+			LOG_INFO("vkCmdBindPipeline name=%s\n", name.c_str());
 			auto binding_point = mpipeline_bindpoints[name];
 			auto pipeline = mpipelines[name];
 
@@ -1869,10 +1883,9 @@ oden::oden_present_graphics(
 				end_renderpass();
 
 			if (pipeline) {
-				LOG_MAIN("vkCmdBindPipeline\n");
 				vkCmdBindPipeline(ref.cmdbuf, binding_point, pipeline);
 			} else {
-				LOG_ERR("Failed make pipeline name=%s\n", name.c_str());
+				LOG_ERR("Failed vkCmdBindPipeline name=%s\n", name.c_str());
 			}
 		}
 
@@ -1880,13 +1893,18 @@ oden::oden_present_graphics(
 		if (type == CMD_CLEAR) {
 			auto name_color = name;
 			auto image_color = mimages[name_color];
+			auto aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			auto dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+			LOG_INFO("vkCmdClearColorImage name=%s\n", name_color.c_str());
 
 			//prepare for context roll.
 			if (rec.submit_renderpass)
 				end_renderpass();
 
 			VkImageSubresourceRange image_range_color = {};
-			image_range_color.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			image_range_color.aspectMask = aspect;
 			image_range_color.baseMipLevel = 0;
 			image_range_color.levelCount = 1;
 			image_range_color.baseArrayLayer = 0;
@@ -1897,36 +1915,46 @@ oden::oden_present_graphics(
 			clearColor.float32[1] = c.clear.color[1];
 			clearColor.float32[2] = c.clear.color[2];
 			clearColor.float32[3] = c.clear.color[3];
-			auto barrier_before = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
+			auto in_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			auto out_layout = in_layout;
+			if (mframebuffers.count(name)) {
+				in_layout = VK_IMAGE_LAYOUT_GENERAL;
+				out_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			auto barrier_before = get_barrier(image_color, aspect, in_layout, VK_IMAGE_LAYOUT_GENERAL);
+			auto barrier_after = get_barrier(image_color, aspect, VK_IMAGE_LAYOUT_GENERAL, out_layout);
+			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
-			auto barrier_after = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
+			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
 
 		//CMD_CLEAR_DEPTH
 		if (type == CMD_CLEAR_DEPTH) {
 			auto name_depth = oden_get_depth_render_target_name(name);
 			auto image_depth = mimages[name_depth];
+			auto aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			auto dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+			LOG_INFO("vkCmdClearDepthStencilImage name=%s\n", name_depth.c_str());
 
 			//prepare for context roll.
 			if (rec.submit_renderpass)
 				end_renderpass();
 
 			//Depth
-			LOG_MAIN("vkCmdClearDepthStencilImage name=%s\n", name_depth.c_str());
 			VkClearDepthStencilValue cdsv = {1.0f, 0};
 			VkImageSubresourceRange image_range_depth = {};
-			image_range_depth.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			image_range_depth.aspectMask = aspect;
 			image_range_depth.baseMipLevel = 0;
 			image_range_depth.levelCount = 1;
 			image_range_depth.baseArrayLayer = 0;
 			image_range_depth.layerCount = 1;
-			auto barrier_before = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
+			auto barrier_before = get_barrier(image_depth, aspect, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
+			auto barrier_after = get_barrier(image_depth, aspect, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearDepthStencilImage(ref.cmdbuf, image_depth, VK_IMAGE_LAYOUT_GENERAL, &cdsv, 1, &image_range_depth);
-			auto barrier_after = get_barrier(image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
+			vkCmdPipelineBarrier(ref.cmdbuf, src_stage_mask, dst_stage_mask, 0, 0, NULL, 0, NULL, 1, &barrier_after);
 		}
 
 		//CMD_GEN_MIPMAP
@@ -1947,23 +1975,43 @@ oden::oden_present_graphics(
 				gen_mipmap(ref.cmdbuf, image_depth, VK_IMAGE_ASPECT_DEPTH_BIT, info_depth.extent.width, info_depth.extent.height, info_depth.mipLevels);
 		}
 
+		//CMD_SET_TEXTURE
+		if (type == CMD_SET_TEXTURE) {
+			/*
+			auto image = mimages[name];
+			auto aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			auto dst_stage_mask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			auto in_layout = VK_IMAGE_LAYOUT_GENERAL;
+			auto miplevel = 1;
+
+			if(mframebuffers.count(name)) {
+				in_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				auto info = mimagesinfo[name];
+				miplevel = info.mipLevels;
+			}
+			if(name.find(ODEN_DEPTH_SIGNATURE))
+				in_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			auto barrier = get_barrier(image, aspect, in_layout, VK_IMAGE_LAYOUT_GENERAL);
+			for(int i = 0 ; i < miplevel; i++)
+				vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, i, 0, NULL, 0, NULL, 1, &barrier);
+			*/
+		}
+
 		//CMD_DRAW_INDEX
 		if (type == CMD_DRAW_INDEX) {
 			auto iid = c.draw_index.iid;
-			if (!rec.submit_renderpass) {
+			if (!rec.submit_renderpass)
 				begin_renderpass();
-			} else {
-
-			}
 			vkCmdDrawIndexed(ref.cmdbuf, c.draw_index.count, 1, 0, 0, iid);
 		}
 
 		//CMD_DRAW
 		if (type == CMD_DRAW) {
 			auto iid = c.draw_index.iid;
-			if (!rec.submit_renderpass) {
+			if (!rec.submit_renderpass)
 				begin_renderpass();
-			}
 			vkCmdDraw(ref.cmdbuf, c.draw.vertex_count, 1, 0, iid);
 		}
 
@@ -1971,7 +2019,7 @@ oden::oden_present_graphics(
 		if (type == CMD_DISPATCH) {
 			vkCmdDispatch(ref.cmdbuf, c.dispatch.x, c.dispatch.y, c.dispatch.z);
 		}
-		LOG_MAIN("draw : cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
+		LOG_INFO("draw : cmd_index = %04d name=%s: %s\n", cmd_index++, name.c_str(), oden_get_cmd_name(type));
 	}
 	if (rec.submit_renderpass)
 		vkCmdEndRenderPass(ref.cmdbuf);
