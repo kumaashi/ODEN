@@ -221,10 +221,11 @@ int main()
 			{0, 1, 1, 1},
 			{1, 1, 1, 1},
 		};
-		SetRenderTarget(vcmd, offscreen_name, Width, Height);
-		SetShader(vcmd, "./shaders/clear", is_update, false, false);
+
 		ClearRenderTarget(vcmd, offscreen_name, clear_color);
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
+		SetRenderTarget(vcmd, offscreen_name, Width, Height);
+		SetShader(vcmd, "./shaders/clear", is_update, false, false);
 		SetVertex(vcmd, "clear_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "clear_ib", idx_rect, sizeof(idx_rect));
 		SetConstant(vcmd, constant_name, 0, &cdata, sizeof(cdata));
@@ -233,6 +234,7 @@ int main()
 		//Draw Cube to offscreenbuffer.
 		cdata.misc.data[0] = 0.0;
 		ClearDepthRenderTarget(vcmd, offscreen_name, 1.0f);
+		SetRenderTarget(vcmd, offscreen_name, Width, Height);
 		SetShader(vcmd, "./shaders/model", is_update, false, true);
 		SetVertex(vcmd, "cube_vb", vtx_cube, sizeof(vtx_cube), sizeof(vertex_format));
 		SetIndex(vcmd, "cube_ib", idx_cube, sizeof(idx_cube));
@@ -249,10 +251,10 @@ int main()
 		GenMipmap(vcmd, offscreen_name);
 
 		//Create Bloom X
-		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
-		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
 		ClearRenderTarget(vcmd, bloomscreen_nameX, clear_color);
 		ClearDepthRenderTarget(vcmd, bloomscreen_nameX, 1.0f);
+		SetRenderTarget(vcmd, bloomscreen_nameX, BloomWidth, BloomHeight);
+		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
 		SetTexture(vcmd, offscreen_name, 1);
@@ -266,10 +268,10 @@ int main()
 		GenMipmap(vcmd, bloomscreen_nameX);
 
 		//Create Bloom Y
-		SetRenderTarget(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
-		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
 		ClearRenderTarget(vcmd, bloomscreen_name, clear_color);
 		ClearDepthRenderTarget(vcmd, bloomscreen_name, 1.0f);
+		SetRenderTarget(vcmd, bloomscreen_name, BloomWidth, BloomHeight);
+		SetShader(vcmd, "./shaders/bloom", is_update, false, false);
 		SetTexture(vcmd, bloomscreen_nameX, 2);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
 		SetIndex(vcmd, "present_ib", idx_rect, sizeof(idx_rect));
@@ -283,10 +285,10 @@ int main()
 		GenMipmap(vcmd, bloomscreen_name);
 
 		//Draw offscreen buffer to present buffer.
-		SetRenderTarget(vcmd, backbuffer_name, Width, Height, true);
-		SetShader(vcmd, "./shaders/present", is_update, false, false);
 		ClearRenderTarget(vcmd, backbuffer_name, clear_color_present[frame & 1]);
 		ClearDepthRenderTarget(vcmd, backbuffer_name, 1.0f);
+		SetRenderTarget(vcmd, backbuffer_name, Width, Height, true);
+		SetShader(vcmd, "./shaders/present", is_update, false, false);
 		SetTexture(vcmd, offscreen_name, 1);
 		SetTexture(vcmd, bloomscreen_name, 3);
 		SetVertex(vcmd, "present_vb", vtx_rect, sizeof(vtx_rect), sizeof(vertex_format));
