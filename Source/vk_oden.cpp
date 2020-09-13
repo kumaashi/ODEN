@@ -885,7 +885,7 @@ gen_mipmap(
 void
 oden::oden_present_graphics(
 	const char * appname, std::vector<cmd> & vcmd,
-	void *handle, uint32_t w, uint32_t h,
+	void *handle, uint32_t width, uint32_t height,
 	uint32_t count, uint32_t heapcount, uint32_t bindingmax)
 {
 	HWND hwnd = (HWND) handle;
@@ -1164,8 +1164,8 @@ oden::oden_present_graphics(
 		sc_info.minImageCount = count;
 		sc_info.imageFormat = VK_FORMAT_B8G8R8A8_UNORM; //todo
 		sc_info.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
-		sc_info.imageExtent.width = w;
-		sc_info.imageExtent.height = h;
+		sc_info.imageExtent.width = width;
+		sc_info.imageExtent.height = height;
 		sc_info.imageArrayLayers = 1;
 		sc_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		sc_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -1390,10 +1390,7 @@ oden::oden_present_graphics(
 
 		//CMD_SET_RENDER_TARGET
 		if (type == CMD_SET_RENDER_TARGET) {
-			auto x = c.set_render_target.rect.x;
-			auto y = c.set_render_target.rect.y;
-			auto w = c.set_render_target.rect.w;
-			auto h = c.set_render_target.rect.h;
+			auto rect = c.set_render_target.rect;
 			bool is_backbuffer = c.set_render_target.is_backbuffer;
 
 			//COLOR
@@ -1402,13 +1399,13 @@ oden::oden_present_graphics(
 			auto fmt_color = VK_FORMAT_R16G16B16A16_SFLOAT;
 			if (is_backbuffer == true)
 				fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
-			int maxmips = oden_get_mipmap_max(w, h);
+			int maxmips = oden_get_mipmap_max(rect.w, rect.h);
 
 			if (maxmips == 0)
-				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", w, h, name.c_str());
+				LOG_ERR("Invalid RT size w=%d, h=%d name=%s\n", rect.w, rect.h, name.c_str());
 			if (image_color == nullptr) {
 				VkImageCreateInfo info = {};
-				image_color = create_image(device, w, h, fmt_color,
+				image_color = create_image(device, rect.w, rect.h, fmt_color,
 						VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
 						VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
 						VK_IMAGE_USAGE_STORAGE_BIT |
@@ -1452,7 +1449,7 @@ oden::oden_present_graphics(
 			auto fmt_depth = VK_FORMAT_D32_SFLOAT;
 			if (image_depth == nullptr) {
 				VkImageCreateInfo info = {};
-				image_depth = create_image(device, w, h, fmt_depth,
+				image_depth = create_image(device, rect.w, rect.h, fmt_depth,
 						VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
 						VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
 						VK_IMAGE_USAGE_SAMPLED_BIT, maxmips, &info);
@@ -1496,7 +1493,7 @@ oden::oden_present_graphics(
 				std::vector<VkImageView> imageviews;
 				imageviews.push_back(imageview_color);
 				imageviews.push_back(imageview_depth);
-				framebuffer = create_framebuffer(device, renderpass, imageviews, w, h);
+				framebuffer = create_framebuffer(device, renderpass, imageviews, rect.w, rect.h);
 				mframebuffers[name] = framebuffer;
 				LOG_MAIN("create_framebuffer name=%s, ptr=%p\n", name_color.c_str(), framebuffer);
 			}
@@ -1661,9 +1658,9 @@ oden::oden_present_graphics(
 
 		//CMD_SET_VERTEX
 		if (type == CMD_SET_VERTEX) {
-			auto buffer = mbuffers[name];
 			auto data = c.buf.data();
 			auto size = c.buf.size();
+			auto buffer = mbuffers[name];
 			if (buffer == nullptr) {
 				LOG_MAIN("create_buffer-vertex name=%s\n", name.c_str());
 				buffer = create_buffer(device, size);
@@ -1811,7 +1808,7 @@ oden::oden_present_graphics(
 			auto framebuffer = mframebuffers[name];
 			if (is_backbuffer == true)
 				fmt_color = VK_FORMAT_B8G8R8A8_UNORM;
-			int maxmips = oden_get_mipmap_max(w, h);
+			int maxmips = oden_get_mipmap_max(rect.w, rect.h);
 
 			//prepare for context roll.
 			if (rec.submit_renderpass)
