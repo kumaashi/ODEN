@@ -140,20 +140,20 @@ VKAPI_CALL vk_callback_printf(
 	return VK_FALSE;
 }
 
-inline void
+VkDebugReportCallbackEXT
 bind_debug_fn(
 	VkInstance instance,
 	VkDebugReportCallbackCreateInfoEXT ext)
 {
 	VkDebugReportCallbackEXT callback;
-	PFN_vkCreateDebugReportCallbackEXT cb;
-	cb = PFN_vkCreateDebugReportCallbackEXT(
-			vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
+	auto cb = PFN_vkCreateDebugReportCallbackEXT(
+		vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
 	if (cb)
 		cb(instance, &ext, nullptr, &callback);
 	else
 		LOG_INFO("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
+	return callback;
 }
 
 [[ nodiscard ]]
@@ -909,6 +909,8 @@ oden::oden_present_graphics(
 	};
 
 	static VkInstance inst = VK_NULL_HANDLE;
+	static VkDebugReportCallbackCreateInfoEXT drcc_info = {};
+	static VkDebugReportCallbackEXT debug_callback_inst = VK_NULL_HANDLE;
 	static VkPhysicalDevice gpudev = VK_NULL_HANDLE;
 	static VkDevice device = VK_NULL_HANDLE;
 	static VkQueue graphics_queue = VK_NULL_HANDLE;
@@ -918,6 +920,7 @@ oden::oden_present_graphics(
 	static VkSampler sampler_nearest = VK_NULL_HANDLE;
 	static VkSampler sampler_linear = VK_NULL_HANDLE;
 	static VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+	static std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 	static VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 	static VkPhysicalDeviceMemoryProperties devicememoryprop = {};
 	static VkPhysicalDeviceProperties gpu_props = {};
@@ -927,13 +930,7 @@ oden::oden_present_graphics(
 	static std::map<std::string, VkImage> mimages;
 	static std::map<std::string, VkImageCreateInfo> mimagesinfo;
 	static std::map<std::string, VkImageLayout> mimageslayout;
-	auto get_layout = [&](auto image_resource_name, auto next_layout) {
-		auto ret = mimageslayout[image_resource_name];
-		mimageslayout[image_resource_name] = next_layout;
-		printf("LAYOUT change name=%s, before=%08X -> after=%08X\n",
-			image_resource_name.c_str(), ret, next_layout);
-		return (ret);
-	};
+
 	static std::map<std::string, VkImageView> mimageviews;
 	static std::map<std::string, VkBuffer> mbuffers;
 	static std::map<std::string, VkMemoryRequirements> mmemreqs;
@@ -956,10 +953,11 @@ oden::oden_present_graphics(
 	};
 	selected_handle rec = {};
 
-	auto alloc_descriptor_sets = [&]() {
-		static uint64_t index = 0;
-		auto ret = vdescriptor_sets[index++ % vdescriptor_sets.size()];
-		LOG_INFO("%s : alloc_descriptor_sets handle=%p\n", __func__, ret);
+	auto get_layout = [&](auto image_resource_name, auto next_layout) {
+		auto ret = mimageslayout[image_resource_name];
+		mimageslayout[image_resource_name] = next_layout;
+		printf("LAYOUT change name=%s, before=%08X -> after=%08X\n",
+			image_resource_name.c_str(), ret, next_layout);
 		return (ret);
 	};
 
@@ -1006,7 +1004,6 @@ oden::oden_present_graphics(
 
 		std::vector<const char *> vinstance_ext_names;
 		std::vector<const char *> ext_names;
-		VkDebugReportCallbackCreateInfoEXT drcc_info = {};
 		VkInstanceCreateInfo inst_info = {};
 		VkPhysicalDeviceFeatures physDevFeatures = {};
 
@@ -1058,7 +1055,7 @@ oden::oden_present_graphics(
 		inst_info.ppEnabledExtensionNames = (const char *const *)vinstance_ext_names.data();
 		auto err = vkCreateInstance(&inst_info, NULL, &inst);
 
-		bind_debug_fn(inst, drcc_info);
+		debug_callback_inst = bind_debug_fn(inst, drcc_info);
 
 		//Enumaration GPU's
 		err = vkEnumeratePhysicalDevices(inst, &gpu_count, NULL);
@@ -1208,7 +1205,6 @@ oden::oden_present_graphics(
 		sampler_nearest = create_sampler(device, false);
 		sampler_linear = create_sampler(device, true);
 		descriptor_pool = create_descriptor_pool(device, count * RDT_SLOT_MAX);
-		std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 		{
 			VkShaderStageFlags shader_stages = VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT;
 			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding_srv;
@@ -1295,8 +1291,22 @@ oden::oden_present_graphics(
 	//Destroy resources
 	if (hwnd == nullptr) {
 		vkDeviceWaitIdle(device);
-		for (auto & ref : devicebuffer)
+		for (auto & ref : devicebuffer) {
 			vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
+			vkDestroyFence(device, ref.fence, NULL);
+		}
+		for (int i = 0 ; i < devicebuffer.size(); i++) {
+			auto name_color = oden_get_backbuffer_name(i);
+			mimages.erase(name_color);
+		}
+		for (auto & x : mpipelines)
+			vkDestroyPipeline(device, x.second, NULL);
+		for (auto & x : mrenderpasses)
+			vkDestroyRenderPass(device, x.second, NULL);
+		for (auto & x : mframebuffers)
+			vkDestroyFramebuffer(device, x.second, NULL);
+		for (auto & x : vdescriptor_layouts)
+			vkDestroyDescriptorSetLayout(device, x, NULL);
 		for (auto & x : mbuffers)
 			vkDestroyBuffer(device, x.second, NULL);
 		for (auto & x : mimageviews)
@@ -1305,6 +1315,21 @@ oden::oden_present_graphics(
 			vkDestroyImage(device, x.second, NULL);
 		for (auto & x : mdevmem)
 			vkFreeMemory(device, x.second, NULL);
+		vkDestroySwapchainKHR(device, swapchain, NULL);
+		vkDestroySurfaceKHR(inst, surface, NULL);
+		vkDestroyCommandPool(device, cmd_pool, NULL);
+		vkDestroySampler(device, sampler_linear, NULL);
+		vkDestroySampler(device, sampler_nearest, NULL);
+		vkDestroyDescriptorPool(device, descriptor_pool, NULL);
+		vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+		vkDestroyDevice(device, NULL);
+		auto fn = PFN_vkDestroyDebugReportCallbackEXT(
+			vkGetInstanceProcAddr(inst, "vkDestroyDebugReportCallbackEXT"));
+		fn(inst, debug_callback_inst, NULL);
+		vkDestroyInstance(inst, NULL);
+		mrenderpasses.clear();
+		mframebuffers.clear();
+		mbuffers.clear();
 		mbuffers.clear();
 		mimageviews.clear();
 		mimages.clear();
