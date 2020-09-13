@@ -33,6 +33,8 @@
 
 namespace oden
 {
+#define ODEN_BACKBUFFER_SIGNATURE "__backbuffer__"
+#define ODEN_MIPLEVEL_SIGNATURE "__miplevel__"
 #define ODEN_DEPTH_SIGNATURE "__depth__"
 
 enum {
@@ -149,7 +151,7 @@ oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 inline std::string
 oden_get_backbuffer_basename(void)
 {
-	return std::string("__backbuffer__");
+	return std::string(ODEN_BACKBUFFER_SIGNATURE);
 }
 
 inline std::string
@@ -161,7 +163,7 @@ oden_get_backbuffer_name(int index)
 inline std::string
 oden_get_mipmap_name(std::string name, int index)
 {
-	return name + "_miplevel_" + std::to_string(index);
+	return name + ODEN_MIPLEVEL_SIGNATURE + std::to_string(index);
 }
 
 inline int
