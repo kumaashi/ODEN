@@ -1849,7 +1849,7 @@ oden::oden_present_graphics(
 		if (type == CMD_SET_TEXTURE) {
 			auto name_color = name;
 			auto image_color = mimages[name_color];
-			auto aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+			auto aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 			auto src_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			auto dst_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			auto in_layout = VK_IMAGE_LAYOUT_GENERAL;
