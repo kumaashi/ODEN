@@ -41,9 +41,13 @@
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "vulkan-1.lib")
 
-#define ODEN_VK_DEBUG_MODE
+//#define ODEN_VK_DEBUG_MODE
 
+#ifdef ODEN_VK_DEBUG_MODE
 #define LOG_INFO(...) printf("INFO : " __FUNCTION__ ":" __VA_ARGS__)
+#else //ODEN_VK_DEBUG_MODE
+#define LOG_INFO(...) {}
+#endif //ODEN_VK_DEBUG_MODE
 #define LOG_ERR(...) printf("ERR : " __FUNCTION__ ":" __VA_ARGS__)
 
 using namespace oden;
@@ -918,7 +922,6 @@ oden::oden_present_graphics(
 	static VkSampler sampler_nearest = VK_NULL_HANDLE;
 	static VkSampler sampler_linear = VK_NULL_HANDLE;
 	static VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-	static std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 	static VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 	static VkPhysicalDeviceMemoryProperties devicememoryprop = {};
 	static VkPhysicalDeviceProperties gpu_props = {};
@@ -928,19 +931,18 @@ oden::oden_present_graphics(
 	static std::map<std::string, VkImage> mimages;
 	static std::map<std::string, VkImageCreateInfo> mimagesinfo;
 	static std::map<std::string, VkImageLayout> mimageslayout;
-
 	static std::map<std::string, VkImageView> mimageviews;
 	static std::map<std::string, VkBuffer> mbuffers;
 	static std::map<std::string, VkMemoryRequirements> mmemreqs;
 	static std::map<std::string, VkDeviceMemory> mdevmem;
 	static std::map<std::string, VkPipeline> mpipelines;
 	static std::map<std::string, VkPipelineBindPoint> mpipeline_bindpoints;
+	static std::vector<VkDescriptorSetLayout> vdescriptor_layouts;
 	static std::vector<frame_info> frame_infos;
 	static std::vector<VkDescriptorSet> vdescriptor_sets;
 
 	static uint32_t backbuffer_index = 0;
 	static uint64_t frame_count = 0;
-
 
 	struct selected_handle {
 		std::string renderpass_name;
@@ -954,7 +956,7 @@ oden::oden_present_graphics(
 	auto get_layout = [&](auto image_resource_name, auto next_layout) {
 		auto ret = mimageslayout[image_resource_name];
 		mimageslayout[image_resource_name] = next_layout;
-		printf("LAYOUT change name=%s, before=%08X -> after=%08X\n",
+		LOG_INFO("LAYOUT change name=%s, before=%08X -> after=%08X\n",
 			image_resource_name.c_str(), ret, next_layout);
 		return (ret);
 	};
@@ -1017,7 +1019,7 @@ oden::oden_present_graphics(
 				vinstance_ext_names.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 			LOG_INFO("vkEnumerateInstanceExtensionProperties : name=%s\n", name.c_str());
 		}
-
+#ifdef ODEN_VK_DEBUG_MODE
 		drcc_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT;
 		drcc_info.flags = 0;
 		drcc_info.flags |= VK_DEBUG_REPORT_ERROR_BIT_EXT;
@@ -1026,6 +1028,7 @@ oden::oden_present_graphics(
 		drcc_info.flags |= VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
 		drcc_info.flags |= VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 		drcc_info.pfnCallback = &vk_callback_printf;
+#endif // ODEN_VK_DEBUG_MODE
 
 		//Create vk instances
 		VkApplicationInfo vkapp = {};
@@ -1037,18 +1040,22 @@ oden::oden_present_graphics(
 		vkapp.engineVersion = 0;
 		vkapp.apiVersion = VK_API_VERSION_1_0;
 
+#ifdef ODEN_VK_DEBUG_MODE
 		//DEBUG
 		static const char *debuglayers[] = {
 			"VK_LAYER_KHRONOS_validation",
 		};
 		vinstance_ext_names.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+#endif // ODEN_VK_DEBUG_MODE
 
 		//create instance
 		inst_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		inst_info.pNext = NULL;
 		inst_info.pApplicationInfo = &vkapp;
+#ifdef ODEN_VK_DEBUG_MODE
 		inst_info.enabledLayerCount = _countof(debuglayers);
 		inst_info.ppEnabledLayerNames = debuglayers;
+#endif // ODEN_VK_DEBUG_MODE
 		inst_info.enabledExtensionCount = (uint32_t)vinstance_ext_names.size();
 		inst_info.ppEnabledExtensionNames = (const char *const *)vinstance_ext_names.data();
 		auto err = vkCreateInstance(&inst_info, NULL, &inst);
@@ -1128,7 +1135,11 @@ oden::oden_present_graphics(
 		device_info.queueCreateInfoCount = 1;
 		device_info.pQueueCreateInfos = &queue_info;
 		device_info.enabledLayerCount = 1;
+#ifdef ODEN_VK_DEBUG_MODE
 		device_info.ppEnabledLayerNames = debuglayers;
+#else //ODEN_VK_DEBUG_MODE
+		device_info.ppEnabledLayerNames = nullptr;
+#endif //ODEN_VK_DEBUG_MODE
 		device_info.enabledExtensionCount = (uint32_t)ext_names.size();
 		device_info.ppEnabledExtensionNames = (const char *const *)ext_names.data();
 		device_info.pEnabledFeatures = NULL;
@@ -1259,23 +1270,29 @@ oden::oden_present_graphics(
 	uint32_t present_index = 0;
 
 	LOG_INFO("vkWaitForFences[%d]\n", backbuffer_index);
-	auto fence_status = vkGetFenceStatus(device, ref.fence);
-	if (fence_status == VK_SUCCESS) {
-		LOG_INFO("The fence specified by fence is signaled.\n");
-		auto wait_result = vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
-		LOG_INFO("vkWaitForFences[%d] Done wait_result=%d(%s)\n", backbuffer_index, wait_result, wait_result ? "NG" : "OK");
-		vkResetFences(device, 1, &ref.fence);
-	}
+	do {
+		auto acquire_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, ref.fence, &present_index);
+		LOG_INFO("vkAcquireNextImageKHR acquire_result=%d, present_index=%d, ref.fence=%p\n", acquire_result, present_index, ref.fence);
+		auto fence_status = vkGetFenceStatus(device, ref.fence);
+		if (fence_status == VK_SUCCESS) {
+			//printf("The fence specified by fence is signaled.\n");
+			auto wait_result = vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
+			vkResetFences(device, 1, &ref.fence);
+			LOG_INFO("vkWaitForFences[%d] Done wait_result=%d(%s)\n", backbuffer_index, wait_result, wait_result ? "NG" : "OK");
+			break;
+		}
 
-	if (fence_status == VK_NOT_READY)
-		LOG_INFO("The fence specified by fence is unsignaled.\n");
+		if (fence_status == VK_NOT_READY) {
+			static uint64_t count = 0;
+			LOG_ERR("The fence specified by fence is unsignaled. count=%d\r", count++);
+			Sleep(0);
+		}
 
-	if (fence_status == VK_ERROR_DEVICE_LOST)
-		LOG_INFO("The device has been lost.\n");
-
-	auto acquire_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, ref.fence, &present_index);
-	LOG_INFO("vkAcquireNextImageKHR acquire_result=%d, present_index=%d, ref.fence=%p\n",
-		acquire_result, present_index, ref.fence);
+		if (fence_status == VK_ERROR_DEVICE_LOST) {
+			LOG_ERR("The device has been lost.\n");
+			exit(0);
+		}
+	} while(1);
 
 	//Destroy scratch resources
 	for (auto & x : ref.vscratch_buffers)
@@ -1321,9 +1338,11 @@ oden::oden_present_graphics(
 		vkDestroyDescriptorPool(device, descriptor_pool, NULL);
 		vkDestroyPipelineLayout(device, pipeline_layout, NULL);
 		vkDestroyDevice(device, NULL);
-		auto fn = PFN_vkDestroyDebugReportCallbackEXT(
-			vkGetInstanceProcAddr(inst, "vkDestroyDebugReportCallbackEXT"));
-		fn(inst, debug_callback_inst, NULL);
+		if (debug_callback_inst) {
+			auto fn = PFN_vkDestroyDebugReportCallbackEXT(
+				vkGetInstanceProcAddr(inst, "vkDestroyDebugReportCallbackEXT"));
+			fn(inst, debug_callback_inst, NULL);
+		}
 		vkDestroyInstance(inst, NULL);
 		mrenderpasses.clear();
 		mframebuffers.clear();
@@ -1723,9 +1742,9 @@ oden::oden_present_graphics(
 		cmd_index++;
 	}
 
-	printf("=========================================================================================\n");
-	printf(" START Batch Commands\n");
-	printf("=========================================================================================\n");
+	LOG_INFO("=========================================================================================\n");
+	LOG_INFO(" START Batch Commands\n");
+	LOG_INFO("=========================================================================================\n");
 	cmd_index = 0;
 	//Cmd Phase
 	std::vector<VkDescriptorSet> vdescriptor_sets_graphics = {
