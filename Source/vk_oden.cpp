@@ -818,6 +818,7 @@ oden::oden_present_graphics(
 		VkCommandBuffer cmdbuf = VK_NULL_HANDLE;
 		VkFence fence = VK_NULL_HANDLE;
 		VkFramebuffer framebuffer = VK_NULL_HANDLE;
+		VkSemaphore sem = VK_NULL_HANDLE;
 
 		std::vector<VkBuffer> vscratch_buffers;
 		std::vector<VkDeviceMemory> vscratch_devmems;
@@ -1123,7 +1124,9 @@ oden::oden_present_graphics(
 			auto & ref = devicebuffer[i];
 			ref.cmdbuf = create_command_buffer(device, cmd_pool);
 			ref.fence = create_fence(device);
-			vkResetFences(device, 1, &ref.fence);
+			VkSemaphoreCreateInfo semaphoreInfo = {};
+			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ref.sem);
 
 			LOG_MAIN("backbuffer cmdbuf[%d] = %p\n", i, ref.cmdbuf);
 			LOG_MAIN("backbuffer fence[%d] = %p\n", i, ref.fence);
@@ -1163,25 +1166,9 @@ oden::oden_present_graphics(
 	//Determine resource index.
 	auto & ref = devicebuffer[backbuffer_index];
 	uint32_t present_index = 0;
-
-	LOG_MAIN("vkWaitForFences[%d]\n", backbuffer_index);
-	auto fence_status = vkGetFenceStatus(device, ref.fence);
-	if (fence_status == VK_SUCCESS) {
-		LOG_MAIN("The fence specified by fence is signaled.\n");
-		auto wait_result = vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
-		LOG_MAIN("vkWaitForFences[%d] Done wait_result=%d(%s)\n", backbuffer_index, wait_result, wait_result ? "NG" : "OK");
-		vkResetFences(device, 1, &ref.fence);
-	}
-
-	if (fence_status == VK_NOT_READY)
-		LOG_MAIN("The fence specified by fence is unsignaled.\n");
-
-	if (fence_status == VK_ERROR_DEVICE_LOST)
-		LOG_MAIN("The device has been lost.\n");
-
-	auto acquire_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, ref.fence, &present_index);
-	LOG_MAIN("vkAcquireNextImageKHR acquire_result=%d, present_index=%d, ref.fence=%p\n",
-		acquire_result, present_index, ref.fence);
+	vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
+	vkResetFences(device, 1, &ref.fence);
+	vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, ref.sem, VK_NULL_HANDLE, &present_index);
 
 	//Destroy scratch resources
 	for (auto & x : ref.vscratch_buffers)
@@ -1895,24 +1882,21 @@ oden::oden_present_graphics(
 	}
 
 	//Submit and Present
-	VkPipelineStageFlags wait_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	VkSubmitInfo submit_info = {};
+	VkPipelineStageFlags wait_mask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkSemaphore waitSemaphores[] = { ref.sem };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.pNext = nullptr;
-	submit_info.waitSemaphoreCount = 0;
-	submit_info.pWaitSemaphores = nullptr;
-	submit_info.pWaitDstStageMask = &wait_mask;
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = waitSemaphores;
+	submit_info.pWaitDstStageMask = wait_mask;
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &ref.cmdbuf;
 	submit_info.signalSemaphoreCount = 0;
 	submit_info.pSignalSemaphores = nullptr;
-	{
-		auto fence_status = vkGetFenceStatus(device, ref.fence);
-		LOG_MAIN("BEFORE vkGetFenceStatus fence_status=%d\n", fence_status);
-		vkResetFences(device, 1, &ref.fence);
-	}
 
 	LOG_MAIN("vkQueueSubmit backbuffer_index=%d, fence=%p\n", backbuffer_index, ref.fence);
+	vkResetFences(device, 1, &ref.fence);
 	auto submit_result = vkQueueSubmit(graphics_queue, 1, &submit_info, ref.fence);
 	LOG_MAIN("vkQueueSubmit Done backbuffer_index=%d, fence=%p, submit_result=%d\n", backbuffer_index, ref.fence, submit_result);
 
