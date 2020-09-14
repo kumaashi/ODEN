@@ -152,20 +152,22 @@ VKAPI_CALL debug_callback(
 	return VK_FALSE;
 }
 
-inline void
+[[ nodiscard ]]
+static
+VkDebugReportCallbackEXT
 bind_debug_fn(
 	VkInstance instance,
 	VkDebugReportCallbackCreateInfoEXT ext)
 {
-	VkDebugReportCallbackEXT callback;
-	PFN_vkCreateDebugReportCallbackEXT cb;
-	cb = PFN_vkCreateDebugReportCallbackEXT(
+	VkDebugReportCallbackEXT callback = NULL;
+	auto cb = PFN_vkCreateDebugReportCallbackEXT(
 			vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
 	if (cb)
 		cb(instance, &ext, nullptr, &callback);
 	else
-		LOG_MAIN("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
+		LOG_INFO("PFN_vkCreateDebugReportCallbackEXT IS NULL\n");
+	return callback;
 }
 
 [[ nodiscard ]] static VkImage
@@ -825,6 +827,7 @@ oden::oden_present_graphics(
 	};
 
 	static VkInstance inst = VK_NULL_HANDLE;
+	static VkDebugReportCallbackEXT debug_callback_inst = VK_NULL_HANDLE;
 	static VkPhysicalDevice gpudev = VK_NULL_HANDLE;
 	static VkDevice device = VK_NULL_HANDLE;
 	static VkQueue graphics_queue = VK_NULL_HANDLE;
@@ -973,7 +976,7 @@ oden::oden_present_graphics(
 		inst_info.ppEnabledExtensionNames = (const char *const *)vinstance_ext_names.data();
 		auto err = vkCreateInstance(&inst_info, NULL, &inst);
 
-		bind_debug_fn(inst, drcc_info);
+		debug_callback_inst = bind_debug_fn(inst, drcc_info);
 
 		//Enumaration GPU's
 		err = vkEnumeratePhysicalDevices(inst, &gpu_count, NULL);
@@ -1181,21 +1184,55 @@ oden::oden_present_graphics(
 
 	//Destroy resources
 	if (hwnd == nullptr) {
+		LOG_INFO("hwnd == nullptr. Start terminate...\n");
+		LOG_INFO("vkDeviceWaitIdle....\n");
 		vkDeviceWaitIdle(device);
-		for (auto & ref : devicebuffer)
-			vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
-		for (auto & x : mbuffers)
-			vkDestroyBuffer(device, x.second, NULL);
+		for (auto & ref : devicebuffer) {
+			vkDestroyFence(device, ref.fence, NULL);
+			vkDestroySemaphore(device, ref.sem, nullptr);
+		}
+		vkDestroyCommandPool(device, cmd_pool, NULL);
+		for (int i = 0 ; i < devicebuffer.size(); i++) {
+			auto name_color = oden_get_backbuffer_name(i);
+			mimages.erase(name_color);
+		}
+		
+		vkDestroyDescriptorSetLayout(device, descriptor_layout, NULL);
+		vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+		vkDestroySampler(device, sampler_linear, NULL);
+		vkDestroySampler(device, sampler_nearest, NULL);
+		vkDestroyDescriptorPool(device, descriptor_pool, NULL);
+		for (auto & x : mpipelines)
+			vkDestroyPipeline(device, x.second, NULL);
 		for (auto & x : mimageviews)
 			vkDestroyImageView(device, x.second, NULL);
+		for (auto & x : mrenderpasses)
+			vkDestroyRenderPass(device, x.second, NULL);
+		for (auto & x : mframebuffers)
+			vkDestroyFramebuffer(device, x.second, NULL);
+		for (auto & x : mbuffers)
+			vkDestroyBuffer(device, x.second, NULL);
 		for (auto & x : mimages)
 			vkDestroyImage(device, x.second, NULL);
 		for (auto & x : mdevmem)
 			vkFreeMemory(device, x.second, NULL);
+		vkDestroySwapchainKHR(device, swapchain, NULL);
+		vkDestroySurfaceKHR(inst, surface, NULL);
+		vkDestroyDevice(device, NULL);
+		if (debug_callback_inst) {
+			auto fn = PFN_vkDestroyDebugReportCallbackEXT(
+					vkGetInstanceProcAddr(inst, "vkDestroyDebugReportCallbackEXT"));
+			fn(inst, debug_callback_inst, NULL);
+		}
+		vkDestroyInstance(inst, NULL);
+		mrenderpasses.clear();
+		mframebuffers.clear();
+		mbuffers.clear();
 		mbuffers.clear();
 		mimageviews.clear();
 		mimages.clear();
 		mdevmem.clear();
+		LOG_INFO("hwnd == nullptr. End terminate...\n");
 		return;
 	}
 
