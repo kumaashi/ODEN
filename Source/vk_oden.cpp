@@ -41,7 +41,7 @@
 #pragma comment(lib, "advapi32.lib")
 #pragma comment(lib, "vulkan-1.lib")
 
-//#define ODEN_VK_DEBUG_MODE
+#define ODEN_VK_DEBUG_MODE
 
 #ifdef ODEN_VK_DEBUG_MODE
 #define LOG_INFO(...) printf("INFO : " __FUNCTION__ ":" __VA_ARGS__)
@@ -149,7 +149,7 @@ bind_debug_fn(
 {
 	VkDebugReportCallbackEXT callback = NULL;
 	auto cb = PFN_vkCreateDebugReportCallbackEXT(
-		vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
+			vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT"));
 
 	if (cb)
 		cb(instance, &ext, nullptr, &callback);
@@ -901,6 +901,7 @@ oden::oden_present_graphics(
 		uint64_t value = 0;
 		VkCommandBuffer cmdbuf = VK_NULL_HANDLE;
 		VkFence fence = VK_NULL_HANDLE;
+		VkSemaphore sem = VK_NULL_HANDLE;
 
 		VkDescriptorSet descriptor_set_srv = VK_NULL_HANDLE;
 		VkDescriptorSet descriptor_set_cbv = VK_NULL_HANDLE;
@@ -1003,7 +1004,6 @@ oden::oden_present_graphics(
 		uint32_t presentQueueFamilyIndex = UINT32_MAX;
 
 		std::vector<const char *> vinstance_ext_names;
-		std::vector<const char *> ext_names;
 		VkInstanceCreateInfo inst_info = {};
 		VkPhysicalDeviceFeatures physDevFeatures = {};
 
@@ -1077,6 +1077,7 @@ oden::oden_present_graphics(
 		err = vkEnumerateDeviceExtensionProperties(gpudev, NULL, &device_extension_count, vdevice_extensions.data());
 		LOG_INFO("vkEnumerateDeviceExtensionProperties : device_extension_count = %d, VK_KHR_SWAPCHAIN_EXTENSION_NAME=%s\n",
 			vdevice_extensions.size(), VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		std::vector<const char *> ext_names;
 		for (auto x : vdevice_extensions) {
 			auto name = std::string(x.extensionName);
 			if (name == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
@@ -1240,7 +1241,10 @@ oden::oden_present_graphics(
 			auto & ref = frame_infos[i];
 			ref.cmdbuf = create_command_buffer(device, cmd_pool);
 			ref.fence = create_fence(device);
-			vkResetFences(device, 1, &ref.fence);
+			VkSemaphoreCreateInfo semaphoreInfo = {};
+			semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &ref.sem);
+
 			ref.descriptor_set_srv = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_SRV]);
 			ref.descriptor_set_cbv = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_CBV]);
 			ref.descriptor_set_uav = create_descriptor_set(device, descriptor_pool, vdescriptor_layouts[RDT_SLOT_UAV]);
@@ -1268,31 +1272,9 @@ oden::oden_present_graphics(
 	//Determine resource index.
 	auto & ref = frame_infos[backbuffer_index];
 	uint32_t present_index = 0;
-
-	LOG_INFO("vkWaitForFences[%d]\n", backbuffer_index);
-	do {
-		auto acquire_result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, VK_NULL_HANDLE, ref.fence, &present_index);
-		LOG_INFO("vkAcquireNextImageKHR acquire_result=%d, present_index=%d, ref.fence=%p\n", acquire_result, present_index, ref.fence);
-		auto fence_status = vkGetFenceStatus(device, ref.fence);
-		if (fence_status == VK_SUCCESS) {
-			//printf("The fence specified by fence is signaled.\n");
-			auto wait_result = vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
-			vkResetFences(device, 1, &ref.fence);
-			LOG_INFO("vkWaitForFences[%d] Done wait_result=%d(%s)\n", backbuffer_index, wait_result, wait_result ? "NG" : "OK");
-			break;
-		}
-
-		if (fence_status == VK_NOT_READY) {
-			static uint64_t count = 0;
-			LOG_ERR("The fence specified by fence is unsignaled. count=%d\r", count++);
-			Sleep(0);
-		}
-
-		if (fence_status == VK_ERROR_DEVICE_LOST) {
-			LOG_ERR("The device has been lost.\n");
-			exit(0);
-		}
-	} while(1);
+	vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
+	vkResetFences(device, 1, &ref.fence);
+	vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, ref.sem, VK_NULL_HANDLE, &present_index);
 
 	//Destroy scratch resources
 	for (auto & x : ref.vscratch_buffers)
@@ -1305,17 +1287,26 @@ oden::oden_present_graphics(
 
 	//Destroy resources
 	if (hwnd == nullptr) {
+		LOG_INFO("hwnd == nullptr. Start terminate...\n");
+		LOG_INFO("vkDeviceWaitIdle....\n");
 		vkDeviceWaitIdle(device);
 		for (auto & ref : frame_infos) {
-			vkWaitForFences(device, 1, &ref.fence, VK_TRUE, UINT64_MAX);
 			vkDestroyFence(device, ref.fence, NULL);
+			vkDestroySemaphore(device, ref.sem, nullptr);
 		}
+		vkDestroyCommandPool(device, cmd_pool, NULL);
 		for (int i = 0 ; i < frame_infos.size(); i++) {
 			auto name_color = oden_get_backbuffer_name(i);
 			mimages.erase(name_color);
 		}
+		vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+		vkDestroySampler(device, sampler_linear, NULL);
+		vkDestroySampler(device, sampler_nearest, NULL);
+		vkDestroyDescriptorPool(device, descriptor_pool, NULL);
 		for (auto & x : mpipelines)
 			vkDestroyPipeline(device, x.second, NULL);
+		for (auto & x : mimageviews)
+			vkDestroyImageView(device, x.second, NULL);
 		for (auto & x : mrenderpasses)
 			vkDestroyRenderPass(device, x.second, NULL);
 		for (auto & x : mframebuffers)
@@ -1324,23 +1315,16 @@ oden::oden_present_graphics(
 			vkDestroyDescriptorSetLayout(device, x, NULL);
 		for (auto & x : mbuffers)
 			vkDestroyBuffer(device, x.second, NULL);
-		for (auto & x : mimageviews)
-			vkDestroyImageView(device, x.second, NULL);
 		for (auto & x : mimages)
 			vkDestroyImage(device, x.second, NULL);
 		for (auto & x : mdevmem)
 			vkFreeMemory(device, x.second, NULL);
 		vkDestroySwapchainKHR(device, swapchain, NULL);
 		vkDestroySurfaceKHR(inst, surface, NULL);
-		vkDestroyCommandPool(device, cmd_pool, NULL);
-		vkDestroySampler(device, sampler_linear, NULL);
-		vkDestroySampler(device, sampler_nearest, NULL);
-		vkDestroyDescriptorPool(device, descriptor_pool, NULL);
-		vkDestroyPipelineLayout(device, pipeline_layout, NULL);
 		vkDestroyDevice(device, NULL);
 		if (debug_callback_inst) {
 			auto fn = PFN_vkDestroyDebugReportCallbackEXT(
-				vkGetInstanceProcAddr(inst, "vkDestroyDebugReportCallbackEXT"));
+					vkGetInstanceProcAddr(inst, "vkDestroyDebugReportCallbackEXT"));
 			fn(inst, debug_callback_inst, NULL);
 		}
 		vkDestroyInstance(inst, NULL);
@@ -1351,6 +1335,7 @@ oden::oden_present_graphics(
 		mimageviews.clear();
 		mimages.clear();
 		mdevmem.clear();
+		LOG_INFO("hwnd == nullptr. End terminate...\n");
 		return;
 	}
 
@@ -1588,7 +1573,7 @@ oden::oden_present_graphics(
 					copy_region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
 					copy_region.imageOffset = {0, 0, 0};
 					copy_region.imageExtent = {w, h, 1};
-					
+
 					auto next_layout = VK_IMAGE_LAYOUT_GENERAL;
 					get_layout(name_color, next_layout);
 					auto before_barrier = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -1612,7 +1597,7 @@ oden::oden_present_graphics(
 				VkDescriptorImageInfo image_info = {};
 				image_info.sampler = sampler_linear;
 				image_info.imageView = imageview_color;
-				image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+				image_info.imageLayout = mimageslayout[name];
 				update_descriptor_sets(device, descriptor_set_srv, &image_info, index, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 			}
 
@@ -1886,10 +1871,10 @@ oden::oden_present_graphics(
 
 			auto next_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			auto layout = get_layout(name_color, next_layout);
-			
+
 			auto barrier_before = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 			auto barrier_after = get_barrier(image_color, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL, next_layout);
-			
+
 			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_before);
 			vkCmdClearColorImage(ref.cmdbuf, image_color, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &image_range_color);
 			vkCmdPipelineBarrier(ref.cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &barrier_after);
@@ -1986,24 +1971,21 @@ oden::oden_present_graphics(
 	}
 
 	//Submit and Present
-	VkPipelineStageFlags wait_mask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	VkSubmitInfo submit_info = {};
+	VkPipelineStageFlags wait_mask[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkSemaphore waitSemaphores[] = { ref.sem };
 	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.pNext = nullptr;
-	submit_info.waitSemaphoreCount = 0;
-	submit_info.pWaitSemaphores = nullptr;
-	submit_info.pWaitDstStageMask = &wait_mask;
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = waitSemaphores;
+	submit_info.pWaitDstStageMask = wait_mask;
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &ref.cmdbuf;
 	submit_info.signalSemaphoreCount = 0;
 	submit_info.pSignalSemaphores = nullptr;
-	{
-		auto fence_status = vkGetFenceStatus(device, ref.fence);
-		LOG_INFO("BEFORE vkGetFenceStatus fence_status=%d\n", fence_status);
-		vkResetFences(device, 1, &ref.fence);
-	}
 
 	LOG_INFO("vkQueueSubmit backbuffer_index=%d, fence=%p\n", backbuffer_index, ref.fence);
+	vkResetFences(device, 1, &ref.fence);
 	auto submit_result = vkQueueSubmit(graphics_queue, 1, &submit_info, ref.fence);
 	LOG_INFO("vkQueueSubmit Done backbuffer_index=%d, fence=%p, submit_result=%d\n", backbuffer_index, ref.fence, submit_result);
 
