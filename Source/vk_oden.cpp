@@ -1455,7 +1455,7 @@ oden::oden_present_graphics(
 			//DEPTH VIEW
 			auto imageview_depth = mimageviews[name_depth];
 			if (imageview_depth == nullptr) {
-				LOG_MAIN("create_image_view name=%s\n", name_color.c_str());
+				LOG_MAIN("create_image_view name=%s\n", name_depth.c_str());
 				imageview_depth = create_image_view(device, image_depth, fmt_depth, VK_IMAGE_ASPECT_DEPTH_BIT);
 				mimageviews[name_depth] = imageview_depth;
 				LOG_MAIN("create_image_view imageview_depth=0x%p\n", imageview_depth);
@@ -1661,7 +1661,7 @@ oden::oden_present_graphics(
 				mmemreqs[name] = memreqs;
 				devmem = alloc_devmem(name, memreqs.size,
 						VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+						VK_MEMORY_PROPERTY_HOST_COHERENT_BIT );
 				vkBindBufferMemory(device, buffer, devmem, 0);
 				LOG_MAIN("vkBindBufferMemory name=%s Done\n", name.c_str());
 			}
