@@ -75,8 +75,6 @@ void SetRenderTarget(std::vector<cmd> & vcmd, std::string name,
 	c.set_render_target.rect.h = h;
 	c.set_render_target.is_backbuffer = is_backbuffer;
 	vcmd.push_back(c);
-
-	SetBarrierToRenderTarget(vcmd, name);
 }
 
 void
@@ -84,8 +82,6 @@ SetTexture(
 	std::vector<cmd> & vcmd, std::string name,
 	int slot, int w, int h, void *data, size_t size, size_t stride_size)
 {
-	SetBarrierToTexture(vcmd, name);
-
 	cmd c = {};
 	c.type = CMD_SET_TEXTURE;
 	c.name = name;
@@ -107,8 +103,6 @@ SetTextureUav(
 	int slot, int w, int h, int miplevel,
 	void *data, size_t size, size_t stride_size)
 {
-	SetBarrierToTexture(vcmd, name);
-
 	cmd c = {};
 	c.type = CMD_SET_TEXTURE_UAV;
 	c.name = name;
