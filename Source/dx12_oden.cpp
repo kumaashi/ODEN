@@ -377,7 +377,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 		//CMD_SET_BARRIER
 		if (type == CMD_SET_BARRIER) {
-			D3D12_RESOURCE_TRANSITION_BARRIER tb {};
+			D3D12_RESOURCE_TRANSITION_BARRIER tb{};
 			tb.pResource = nullptr;
 			if (c.set_barrier.to_present) {
 				tb.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -391,7 +391,10 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				tb.StateBefore = D3D12_RESOURCE_STATE_COMMON;
 				tb.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 			}
-			mbarrier[name] = tb;
+			if (mbarrier.count(name)) {
+				auto before_tb = mbarrier[name];
+				tb.StateBefore = before_tb.StateAfter;
+			}
 		}
 
 		//CMD_SET_RENDER_TARGET
@@ -463,14 +466,13 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 				barrier.Transition.pResource = mres[name_color];
 				ref.cmdlist->ResourceBarrier(1, &barrier);
 			}
-			mbarrier.erase(name_color);
+
 			if (mbarrier.count(name_depth)) {
 				D3D12_RESOURCE_BARRIER barrier = get_barrier(nullptr, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COMMON);
 				barrier.Transition = mbarrier[name_depth];
 				barrier.Transition.pResource = mres[name_depth];
 				ref.cmdlist->ResourceBarrier(1, &barrier);
 			}
-			mbarrier.erase(name_depth);
 
 
 			D3D12_VIEWPORT viewport = { FLOAT(x), FLOAT(y), FLOAT(w), FLOAT(h), 0.0f, 1.0f };
@@ -590,7 +592,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			auto gpu_handle = heap_shader->GetGPUDescriptorHandleForHeapStart();
 			auto slot = c.set_constant.slot;
 			auto data = c.buf.data();
-			auto size = c.buf.size();
+			auto size = (c.buf.size() + 255) & ~255;
 			if (res == nullptr) {
 				res = create_resource(name, dev, size, 1, DXGI_FORMAT_UNKNOWN, D3D12_RESOURCE_FLAG_NONE, TRUE, data, size);
 				if (!res) {
@@ -601,8 +603,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 			}
 			if (mgpu_handle.count(name) == 0) {
 				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-				D3D12_RESOURCE_DESC desc_res = res->GetDesc();
-				desc.SizeInBytes = (desc_res.Width + 255) & ~255;
+				desc.SizeInBytes = size;
 				desc.BufferLocation = res->GetGPUVirtualAddress();
 				cpu_handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * handle_index_shader;
 				dev->CreateConstantBufferView(&desc, cpu_handle);
@@ -721,6 +722,7 @@ oden::oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 
 				for (auto & fmt : gpstate_desc.RTVFormats)
 					fmt = fmt_color;
+				gpstate_desc.DSVFormat = fmt_depth;
 
 				cpstate_desc.pRootSignature = rootsig;
 				cpstate_desc.CS = create_shader_from_file(std::string(name + ".hlsl"), "CSMain", "cs_5_0", cs);
