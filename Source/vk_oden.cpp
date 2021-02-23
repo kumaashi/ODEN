@@ -337,7 +337,7 @@ create_renderpass(
 	depth_reference.attachment = 1;
 	depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	for (int i = 0 ; i < color_num; i++) {
+	for (uint32_t i = 0 ; i < color_num; i++) {
 		auto ref = color_reference;
 		ref.attachment = attachment_index;
 		vattachments.push_back(color_attachment);
@@ -645,7 +645,7 @@ create_gpipeline_from_file(
 
 	dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamic_state.pDynamicStates = vdynamic_state_enables.data();
-	dynamic_state.dynamicStateCount = vdynamic_state_enables.size();
+	dynamic_state.dynamicStateCount = static_cast<uint32_t>(vdynamic_state_enables.size());
 
 	//SETUP RS
 	rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -746,8 +746,9 @@ create_gpipeline_from_file(
 	vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vi.vertexBindingDescriptionCount = 1;
 	vi.pVertexBindingDescriptions = &vi_ibdesc;
-	vi.vertexAttributeDescriptionCount = vvertex_input_attr_descs.size();
 	vi.pVertexAttributeDescriptions = vvertex_input_attr_descs.data();
+	vi.vertexAttributeDescriptionCount =
+		static_cast<uint32_t>(vvertex_input_attr_descs.size());
 
 	//Create Pipeline
 	if (!vsstageinfo.empty()) {
@@ -761,8 +762,9 @@ create_gpipeline_from_file(
 		pipeline_info.pMultisampleState = &ms;
 		pipeline_info.pViewportState = &vp;
 		pipeline_info.pDepthStencilState = &ds;
-		pipeline_info.stageCount = vsstageinfo.size();
 		pipeline_info.pStages = vsstageinfo.data();
+		pipeline_info.stageCount =
+			static_cast<uint32_t>(vsstageinfo.size());
 		pipeline_info.pDynamicState = &dynamic_state;
 		pipeline_info.renderPass = renderpass;
 		auto pipeline_result = vkCreateGraphicsPipelines(
@@ -1125,7 +1127,7 @@ oden::oden_present_graphics(
 		//Create Frame Resources
 		devicebuffer.resize(count);
 
-		for (int i = 0 ; i < count; i++) {
+		for (uint32_t i = 0 ; i < count; i++) {
 			auto & ref = devicebuffer[i];
 			ref.cmdbuf = create_command_buffer(device, cmd_pool);
 			ref.fence = create_fence(device);
@@ -1142,7 +1144,7 @@ oden::oden_present_graphics(
 
 		{
 			std::vector<VkDescriptorSetLayoutBinding> vdesc_setlayout_binding;
-			for (int i = 0  ; i < slotmax; i++) {
+			for (uint32_t i = 0 ; i < slotmax; i++) {
 				vdesc_setlayout_binding.push_back({(uint32_t)RDT_SLOT_SRV + i * RDT_SLOT_MAX, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
 				vdesc_setlayout_binding.push_back({(uint32_t)RDT_SLOT_CBV + i * RDT_SLOT_MAX, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
 				vdesc_setlayout_binding.push_back({(uint32_t)RDT_SLOT_UAV + i * RDT_SLOT_MAX, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_COMPUTE_BIT, nullptr});
