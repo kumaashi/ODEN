@@ -66,6 +66,8 @@ fork_process_wait(const char *command)
 		while (WaitForSingleObject(pi.hProcess, 0) != WAIT_OBJECT_0) {
 			Sleep(0);
 		}
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 	}
 }
 
