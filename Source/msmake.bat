@@ -1,1 +1,1 @@
-MSBuild oden.sln -t:Rebuild -p:Configuration=Release 
+MSBuild oden.sln -t:Build -p:Configuration=Release 
