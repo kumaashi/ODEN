@@ -34,6 +34,13 @@
 #include "MatrixStack.h"
 #include "Win.h"
 
+#pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "advapi32.lib")
+
+#pragma comment(lib, "DX12_ODEN.lib")
+
 
 struct matrix4x4 {
 	float data[16];

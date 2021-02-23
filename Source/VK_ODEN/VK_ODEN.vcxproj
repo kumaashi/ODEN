@@ -45,7 +45,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -95,8 +95,7 @@
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions); _CRT_SECURE_NO_WARNINGS </PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /Y        $(TargetDir)$(TargetName).lib        $(SolutionDir)$(TargetName)\</Command>
     </PostBuildEvent>
     <Link>
       <OutputFile>$(SolutionDir)$(TargetName)$(TargetExt)</OutputFile>
@@ -133,18 +132,14 @@
       <OutputFile>$(SolutionDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /Y        $(TargetDir)$(TargetName).lib        $(SolutionDir)$(TargetName)\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\oden.h" />
-    <ClInclude Include="..\oden_util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\vk_oden.cpp" />
-    <ClCompile Include="..\oden_util.cpp" />
-    <ClCompile Include="..\sample_code.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\shaders\bloom.glsl" />

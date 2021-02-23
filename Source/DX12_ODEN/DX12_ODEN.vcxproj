@@ -45,7 +45,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -87,8 +87,7 @@
       <AdditionalOptions>/std:c++latest /MP4 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /Y        $(TargetDir)$(TargetName).lib        $(SolutionDir)</Command>
     </PostBuildEvent>
     <Link>
       <OutputFile>$(SolutionDir)$(TargetName)$(TargetExt)</OutputFile>
@@ -124,13 +123,11 @@
       <OutputFile>$(SolutionDir)$(TargetName)$(TargetExt)</OutputFile>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /Y        $(TargetDir)$(TargetName).lib        $(SolutionDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\oden.h" />
-    <ClInclude Include="..\oden_util.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\shaders\bloom.hlsl">
@@ -160,8 +157,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\dx12_oden.cpp" />
-    <ClCompile Include="..\oden_util.cpp" />
-    <ClCompile Include="..\sample_code.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

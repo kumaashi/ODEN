@@ -127,6 +127,7 @@ struct cmd {
 	};
 };
 
+__declspec(dllexport)
 void
 oden_present_graphics(const char * appname, std::vector<cmd> & vcmd,
 	void *handle, uint32_t w, uint32_t h,

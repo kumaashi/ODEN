@@ -2,12 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\vk_oden.cpp" />
-    <ClCompile Include="..\oden_util.cpp" />
-    <ClCompile Include="..\sample_code.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\oden.h" />
-    <ClInclude Include="..\oden_util.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shaders">
